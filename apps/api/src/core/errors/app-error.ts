@@ -21,6 +21,7 @@ export type ErrorCode =
   | 'totpRequired'
   | 'totpAlreadyEnrolled'
   | 'sessionExpired'
+  | 'sessionRotated'
   | 'accountBlocked'
   | 'emailTaken'
   | 'lastOwner';

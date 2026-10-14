@@ -60,7 +60,8 @@ export class TokenService {
     if (session.revokedAt) {
       const benignRace =
         session.replacedById && Date.now() - session.revokedAt.getTime() < ROTATION_GRACE_MS;
-      if (!benignRace) await this.revokeFamily(session.familyId, 'refresh token reuse');
+      if (benignRace) throw AppError.conflict('sessionRotated'); // a parallel request already rotated it
+      await this.revokeFamily(session.familyId, 'refresh token reuse');
       throw AppError.unauthorized('sessionExpired');
     }
     if (session.expiresAt.getTime() <= Date.now()) throw AppError.unauthorized('sessionExpired');
@@ -90,7 +91,7 @@ export class TokenService {
         where: { id: session.id, revokedAt: null },
         data: { revokedAt: new Date(), replacedById: created.id },
       });
-      if (count !== 1) throw AppError.unauthorized('sessionExpired');
+      if (count !== 1) throw AppError.conflict('sessionRotated');
       return created;
     });
     return this.tokensFor(session.user, next, newSecret);

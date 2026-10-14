@@ -11,3 +11,5 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
   "@scarf/scarf": false
+  "@parcel/watcher": true
+  "@swc/core": true

@@ -89,7 +89,8 @@
     "conflict": "This record already exists",
     "totpAlreadyEnrolled": "Two-factor authentication is already set up",
     "emailTaken": "This email is used by another account",
-    "lastOwner": "The last store owner cannot be removed"
+    "lastOwner": "The last store owner cannot be removed",
+    "sessionRotated": "Your session was refreshed by another request. Please retry."
   },
   "account": {
     "title": "My account",

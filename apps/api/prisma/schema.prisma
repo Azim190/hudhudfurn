@@ -46,7 +46,7 @@ model User {
   passwordHash String?            @map("password_hash")
   fullName     String?            @map("full_name")
   locale       Locale             @default(ar)
-  digits       DigitStyle         @default(arabic_indic)
+  digits       DigitStyle         @default(western)
   calendar     CalendarPreference @default(gregory)
   status       UserStatus         @default(ACTIVE)
   lastLoginAt  DateTime?          @map("last_login_at") @db.Timestamptz(3)

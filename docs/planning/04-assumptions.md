@@ -35,3 +35,8 @@ Each item below is a sensible default chosen so work is not blocked. All of them
 - Carriers at launch: **Aramex + own fleet** (default).
 - Hosting region and provider.
 - Brand identity (name, logo, colours). The default theme is a neutral warm palette with IBM Plex Sans Arabic + IBM Plex Sans.
+
+## Added during Phase 1
+25. **Digits default to Western (123) in both languages**, matching common practice on large Saudi storefronts. Arabic-Indic (١٢٣) is one tap away in the header and is saved to the customer's profile.
+26. **Local ports**: API 4100, storefront 3100, admin 3101, Postgres 55432, Redis 56379. These avoid other services already running on the development machine, and every one is configurable through env.
+27. **Object storage**: SeaweedFS (S3-compatible) replaces MinIO locally, because MinIO no longer publishes public container images. Production uses a managed S3-compatible service.

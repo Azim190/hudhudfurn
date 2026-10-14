@@ -116,7 +116,8 @@ describe('refresh token rotation', () => {
   it('tolerates a concurrent double refresh without revoking the family', async () => {
     const { refreshToken: t1 } = await loginCustomer(ctx);
     const r2 = await ctx.http().post(`${API}/auth/refresh`).send({ refreshToken: t1 }).expect(200);
-    await ctx.http().post(`${API}/auth/refresh`).send({ refreshToken: t1 }).expect(401);
+    const race = await ctx.http().post(`${API}/auth/refresh`).send({ refreshToken: t1 }).expect(409);
+    expect(race.body.code).toBe('sessionRotated');
     await ctx.http().post(`${API}/auth/refresh`).send({ refreshToken: r2.body.refreshToken }).expect(200);
   });
 
