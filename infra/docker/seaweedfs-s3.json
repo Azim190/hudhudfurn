@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "hudhud",
+      "credentials": [{ "accessKey": "hudhud", "secretKey": "hudhud-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

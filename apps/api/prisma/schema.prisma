@@ -1,0 +1,307 @@
+// HUDHUD data model. See docs/planning/01-erd.md for the full ERD.
+// Conventions: uuid ids, snake_case tables/columns, money in integer halalas, lengths in mm.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────── Identity & access ───────────────────────────────
+
+enum UserKind {
+  CUSTOMER
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum Locale {
+  ar
+  en
+}
+
+enum DigitStyle {
+  western
+  arabic_indic
+}
+
+enum CalendarPreference {
+  gregory
+  islamic_umalqura
+}
+
+model User {
+  id           String             @id @default(uuid()) @db.Uuid
+  kind         UserKind
+  phoneE164    String?            @unique @map("phone_e164")
+  email        String?            @unique
+  passwordHash String?            @map("password_hash")
+  fullName     String?            @map("full_name")
+  locale       Locale             @default(ar)
+  digits       DigitStyle         @default(arabic_indic)
+  calendar     CalendarPreference @default(gregory)
+  status       UserStatus         @default(ACTIVE)
+  lastLoginAt  DateTime?          @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt    DateTime?          @map("deleted_at") @db.Timestamptz(3)
+
+  roles        UserRole[]
+  sessions     Session[]
+  totp         TotpSecret?
+  addresses    Address[]
+  consents     ConsentRecord[]
+  dataRequests DataSubjectRequest[]
+  auditLogs    AuditLog[]
+
+  @@index([kind, status])
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid()) @db.Uuid
+  key         String           @unique
+  nameAr      String           @map("name_ar")
+  nameEn      String           @map("name_en")
+  isSystem    Boolean          @default(false) @map("is_system")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  key   String           @id
+  group String
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId        String     @map("role_id") @db.Uuid
+  permissionKey String     @map("permission_key")
+  role          Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission @relation(fields: [permissionKey], references: [key], onDelete: Cascade)
+
+  @@id([roleId, permissionKey])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+/// One row per issued refresh token. Rotation creates a new row in the same family and revokes
+/// the previous one; presenting a revoked token revokes the whole family (theft detection).
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @map("user_id") @db.Uuid
+  familyId         String    @map("family_id") @db.Uuid
+  refreshTokenHash String    @map("refresh_token_hash")
+  mfaVerified      Boolean   @default(false) @map("mfa_verified")
+  ip               String?
+  userAgent        String?   @map("user_agent")
+  deviceLabel      String?   @map("device_label")
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(3)
+  replacedById     String?   @map("replaced_by_id") @db.Uuid
+  lastUsedAt       DateTime  @default(now()) @map("last_used_at") @db.Timestamptz(3)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+  @@map("sessions")
+}
+
+model TotpSecret {
+  userId              String    @id @map("user_id") @db.Uuid
+  secretEncrypted     String    @map("secret_encrypted")
+  confirmedAt         DateTime? @map("confirmed_at") @db.Timestamptz(3)
+  /// argon2 hashes of single-use recovery codes; used codes are removed.
+  recoveryCodesHashed String[]  @map("recovery_codes_hashed")
+  lastUsedStep        BigInt?   @map("last_used_step")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("totp_secrets")
+}
+
+enum OtpPurpose {
+  LOGIN
+  VERIFY_PHONE
+}
+
+model OtpChallenge {
+  id         String     @id @default(uuid()) @db.Uuid
+  phoneE164  String     @map("phone_e164")
+  purpose    OtpPurpose
+  codeHash   String     @map("code_hash")
+  attempts   Int        @default(0)
+  ip         String?
+  expiresAt  DateTime   @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime?  @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([phoneE164, purpose, createdAt])
+  @@map("otp_challenges")
+}
+
+// ─────────────────────────────── Geography & addresses ───────────────────────────────
+
+model City {
+  id         String     @id @default(uuid()) @db.Uuid
+  code       String     @unique
+  nameAr     String     @map("name_ar")
+  nameEn     String     @map("name_en")
+  regionCode String     @map("region_code")
+  codAllowed Boolean    @default(true) @map("cod_allowed")
+  isActive   Boolean    @default(true) @map("is_active")
+  sortOrder  Int        @default(0) @map("sort_order")
+  districts  District[]
+  addresses  Address[]
+
+  @@map("cities")
+}
+
+model District {
+  id        String    @id @default(uuid()) @db.Uuid
+  cityId    String    @map("city_id") @db.Uuid
+  nameAr    String    @map("name_ar")
+  nameEn    String    @map("name_en")
+  city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  addresses Address[]
+
+  @@unique([cityId, nameAr])
+  @@map("districts")
+}
+
+model Address {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  label         String?
+  recipientName String    @map("recipient_name")
+  phoneE164     String    @map("phone_e164")
+  cityId        String    @map("city_id") @db.Uuid
+  districtId    String?   @map("district_id") @db.Uuid
+  street        String?
+  buildingNo    String?   @map("building_no")
+  additionalNo  String?   @map("additional_no")
+  postalCode    String?   @map("postal_code")
+  /// Saudi National Address short code, e.g. RRRD2929.
+  shortAddress  String?   @map("short_address")
+  lat           Decimal?  @db.Decimal(9, 6)
+  lng           Decimal?  @db.Decimal(9, 6)
+  isDefault     Boolean   @default(false) @map("is_default")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  city          City      @relation(fields: [cityId], references: [id])
+  district      District? @relation(fields: [districtId], references: [id])
+
+  @@index([userId])
+  @@map("addresses")
+}
+
+// ─────────────────────────────── PDPL ───────────────────────────────
+
+enum ConsentPurpose {
+  MARKETING_SMS
+  MARKETING_WHATSAPP
+  MARKETING_EMAIL
+  MARKETING_PUSH
+  ANALYTICS
+  PERSONALIZATION
+}
+
+model ConsentRecord {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @map("user_id") @db.Uuid
+  purpose       ConsentPurpose
+  granted       Boolean
+  policyVersion String         @map("policy_version")
+  ip            String?
+  recordedAt    DateTime       @default(now()) @map("recorded_at") @db.Timestamptz(3)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, recordedAt])
+  @@map("consent_records")
+}
+
+enum DataRequestType {
+  EXPORT
+  DELETE
+  RECTIFY
+}
+
+enum DataRequestStatus {
+  PENDING
+  PROCESSING
+  DONE
+  REJECTED
+}
+
+model DataSubjectRequest {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id") @db.Uuid
+  type        DataRequestType
+  status      DataRequestStatus @default(PENDING)
+  note        String?
+  resultUrl   String?           @map("result_url")
+  processedAt DateTime?         @map("processed_at") @db.Timestamptz(3)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("data_subject_requests")
+}
+
+// ─────────────────────────────── Audit & settings ───────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  actorId    String?  @map("actor_id") @db.Uuid
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  at         DateTime @default(now()) @db.Timestamptz(3)
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId, at])
+  @@index([at])
+  @@map("audit_logs")
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedBy String?  @map("updated_by") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("settings")
+}

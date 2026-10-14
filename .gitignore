@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+coverage/
+.turbo/
+*.tsbuildinfo
+.env
+.env.local
+.env.*.local
+!.env.example
+*.log
+.DS_Store
+next-env.d.ts
+apps/mobile/build/
+apps/mobile/.dart_tool/
+playwright-report/
+test-results/
