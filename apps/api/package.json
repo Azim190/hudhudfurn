@@ -15,7 +15,9 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed"
   },
-  "prisma": { "seed": "tsx prisma/seed.ts" },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
   "dependencies": {
     "@hudhud/domain": "workspace:*",
     "@hudhud/i18n": "workspace:*",

@@ -39,6 +39,11 @@ export interface ApiRequest {
 }
 
 export async function apiFetch<T>(path: string, req: ApiRequest = {}): Promise<T> {
+  return (await apiFetchWithStatus<T>(path, req)).data;
+}
+
+/** Like apiFetch, but also returns the upstream status (e.g. 201) so proxies can preserve it. */
+export async function apiFetchWithStatus<T>(path: string, req: ApiRequest = {}): Promise<{ status: number; data: T }> {
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (req.body !== undefined) headers['Content-Type'] = 'application/json';
   if (req.token) headers.Authorization = `Bearer ${req.token}`;
@@ -58,7 +63,7 @@ export async function apiFetch<T>(path: string, req: ApiRequest = {}): Promise<T
     signal: AbortSignal.timeout(15_000),
   });
 
-  if (res.status === 204) return undefined as T;
+  if (res.status === 204) return { status: 204, data: undefined as T };
   const text = await res.text();
   const json: unknown = text ? safeJson(text) : undefined;
   if (!res.ok) {
@@ -70,7 +75,7 @@ export async function apiFetch<T>(path: string, req: ApiRequest = {}): Promise<T
       details: body.details,
     });
   }
-  return json as T;
+  return { status: res.status, data: json as T };
 }
 
 function safeJson(text: string): unknown {

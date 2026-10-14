@@ -27,11 +27,15 @@ export class AdminController {
   /** The signed-in staff member with roles and effective permissions (drives admin UI gating). */
   @Get('me')
   async me(@CurrentUser() user: AuthUser) {
-    const [profile, { roles, permissions }] = await Promise.all([
+    const [profile, { roles, permissions }, roleNames] = await Promise.all([
       this.users.profile(user.id),
       this.rbac.resolve(user.id),
+      this.prisma.role.findMany({
+        where: { users: { some: { userId: user.id } } },
+        select: { key: true, nameAr: true, nameEn: true },
+      }),
     ]);
-    return { ...profile, roles, permissions: [...permissions].sort() };
+    return { ...profile, roles, roleNames, permissions: [...permissions].sort() };
   }
 
   @Get('permissions')

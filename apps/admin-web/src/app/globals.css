@@ -1,0 +1,9 @@
+@import 'tailwindcss';
+@import '../../../../packages/ui/src/theme.css';
+@source '../../../../packages/ui/src';
+
+@layer base {
+  html[lang='en'] body {
+    font-family: var(--font-latin), var(--font-arabic), system-ui, sans-serif;
+  }
+}

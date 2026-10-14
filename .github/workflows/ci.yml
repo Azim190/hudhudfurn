@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+  TURBO_TELEMETRY_DISABLED: 1
+
+jobs:
+  verify:
+    name: Build, typecheck, lint, unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @hudhud/api prisma:generate
+      - run: pnpm turbo run build typecheck lint
+        env:
+          API_INTERNAL_URL: http://localhost:4100/api/v1
+      - name: Unit tests (domain/i18n coverage gate ≥ 90%)
+        run: pnpm turbo run test:cov
+
+  api-integration:
+    name: API integration tests (Postgres + Redis)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: hudhud, POSTGRES_PASSWORD: hudhud, POSTGRES_DB: hudhud_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hudhud" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgresql://hudhud:hudhud@localhost:5432/hudhud_test?schema=public
+      TEST_REDIS_URL: redis://localhost:6379/1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run build --filter=@hudhud/domain --filter=@hudhud/i18n
+      - run: pnpm --filter @hudhud/api prisma:generate
+      - run: pnpm --filter @hudhud/api test:e2e
+
+  e2e:
+    name: Playwright E2E (AR + EN, RTL visual)
+    runs-on: ubuntu-latest
+    needs: [verify]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: hudhud, POSTGRES_PASSWORD: hudhud, POSTGRES_DB: hudhud }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U hudhud" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+    env:
+      DATABASE_URL: postgresql://hudhud:hudhud@localhost:5432/hudhud?schema=public
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret-ci-access-secret-ci-access
+      JWT_MFA_SECRET: ci-mfa-secret-ci-mfa-secret-ci-mfa-secret-ci
+      OTP_PEPPER: ci-otp-pepper-ci-otp-pepper-ci-otp-pepper-ci
+      ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
+      TRUST_PROXY: 'true'
+      API_INTERNAL_URL: http://localhost:4100/api/v1
+      SEED_OWNER_EMAIL: owner@ci.test
+      SEED_OWNER_PASSWORD: ci-owner-password-123
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @hudhud/api prisma:generate
+      - run: pnpm turbo run build
+      - run: pnpm --filter @hudhud/api exec prisma migrate deploy && pnpm --filter @hudhud/api prisma:seed
+      - name: Start API, storefront and admin
+        run: |
+          (cd apps/api && node dist/main.js &)
+          (cd apps/storefront-web && npx next start --port 3100 &)
+          (cd apps/admin-web && npx next start --port 3101 &)
+          npx --yes wait-on@8 -t 60000 http://localhost:4100/api/v1/health/ready http://localhost:3100/ar http://localhost:3101/ar/login
+      - run: pnpm --filter @hudhud/e2e exec playwright install --with-deps chromium
+      # Baselines are OS-specific; missing Linux baselines are written and uploaded for review.
+      - run: pnpm --filter @hudhud/e2e exec playwright test --update-snapshots=missing
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright
+          path: |
+            e2e/playwright-report
+            e2e/tests/*-snapshots

@@ -15,3 +15,7 @@ apps/mobile/build/
 apps/mobile/.dart_tool/
 playwright-report/
 test-results/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/

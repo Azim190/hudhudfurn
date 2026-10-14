@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { ApiError, apiFetch, type ApiRequest } from './api-client';
+import { ApiError, apiFetchWithStatus, type ApiRequest } from './api-client';
 import {
   clearSession,
   clientIpOf,
@@ -51,18 +51,21 @@ export async function proxyAuthed(
   };
 
   if (!access) await doRefresh();
-  const call = () => apiFetch<unknown>(path, { ...init, ...client, token: access });
+  const call = () => apiFetchWithStatus<unknown>(path, { ...init, ...client, token: access });
 
   let res: NextResponse;
   try {
-    let data: unknown;
+    let upstream: { status: number; data: unknown };
     try {
-      data = await call();
+      upstream = await call();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401 && !rotated && (await doRefresh())) data = await call();
+      if (err instanceof ApiError && err.status === 401 && !rotated && (await doRefresh())) upstream = await call();
       else throw err;
     }
-    res = data === undefined ? new NextResponse(null, { status: 204 }) : NextResponse.json(data);
+    res =
+      upstream.status === 204
+        ? new NextResponse(null, { status: 204 })
+        : NextResponse.json(upstream.data, { status: upstream.status });
   } catch (err) {
     res = errorResponse(err);
     if (err instanceof ApiError && err.status === 401) clearSession(res.cookies, names);

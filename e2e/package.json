@@ -1,0 +1,15 @@
+{
+  "name": "@hudhud/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Playwright E2E and RTL/LTR visual regression tests for the storefront and admin, in Arabic and English.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.0",
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}
