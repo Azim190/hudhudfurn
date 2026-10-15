@@ -36,6 +36,8 @@ export interface ApiRequest {
   /** Next.js fetch cache controls for public data. */
   revalidate?: number | false;
   tags?: string[];
+  /** Extra request headers (e.g. X-Cart-Token). */
+  headers?: Record<string, string>;
 }
 
 export async function apiFetch<T>(path: string, req: ApiRequest = {}): Promise<T> {
@@ -44,7 +46,7 @@ export async function apiFetch<T>(path: string, req: ApiRequest = {}): Promise<T
 
 /** Like apiFetch, but also returns the upstream status (e.g. 201) so proxies can preserve it. */
 export async function apiFetchWithStatus<T>(path: string, req: ApiRequest = {}): Promise<{ status: number; data: T }> {
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: 'application/json', ...req.headers };
   if (req.body !== undefined) headers['Content-Type'] = 'application/json';
   if (req.token) headers.Authorization = `Bearer ${req.token}`;
   if (req.locale) headers['Accept-Language'] = req.locale;

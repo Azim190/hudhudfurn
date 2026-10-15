@@ -21,7 +21,7 @@ import { MediaService } from '../modules/media/media.service';
 import { SearchService } from '../modules/search/search.service';
 import { SEED_ATTRIBUTES } from './seed-data/attributes';
 import { SEED_CATEGORIES, SEED_SIZE_GUIDES } from './seed-data/categories';
-import { renderProductImage } from './seed-data/product-image';
+import { renderBannerImage, renderProductImage } from './seed-data/product-image';
 import { CARE, SEED_COLLECTIONS, SEED_LOOKS, SEED_PRODUCTS } from './seed-data/products';
 
 const log = (msg: string) => console.log(msg);
@@ -53,6 +53,7 @@ async function main() {
       prisma.category.updateMany({ data: { parentId: null } }),
       prisma.category.deleteMany(),
       prisma.collection.deleteMany(),
+      prisma.banner.deleteMany(),
       prisma.mediaAsset.deleteMany(),
     ]);
   }
@@ -246,6 +247,27 @@ async function main() {
   }
   for (const [key, ids] of collectionMembers) await merch.setCollectionProducts(collectionIds.get(key)!, { productIds: ids });
   log('✓ relations and collections');
+
+  // Home hero banners (bilingual; one artwork per language would also be supported).
+  if ((await prisma.banner.count()) === 0) {
+    const banners = [
+      { vertical: 'CURTAINS', color: '#3B4048', accent: '#2F6F6A', titleAr: 'ستائر تفصيل بمقاس نافذتك', titleEn: 'Curtains made to your window', subtitleAr: 'قياس وتركيب مجاني في الرياض وجدة والدمام', subtitleEn: 'Free measuring and installation in Riyadh, Jeddah and Dammam', ctaAr: 'اكتشفي الستائر', ctaEn: 'Explore curtains', link: '/c/curtains' },
+      { vertical: 'ABAYAS', color: '#151515', accent: '#C9A227', titleAr: 'تشكيلة رمضان', titleEn: 'The Ramadan collection', subtitleAr: 'عبايات مطرزة ومفارش ومجالس لأجمل الليالي', subtitleEn: 'Embroidered abayas, bedding and majlis covers for the holy month', ctaAr: 'تسوّقي التشكيلة', ctaEn: 'Shop the collection', link: '/collections/ramadan' },
+      { vertical: 'BEDDING', color: '#F2EADB', accent: '#9CC5E0', titleAr: 'نوم أعمق بقطن مصري', titleEn: 'Sleep deeper in Egyptian cotton', subtitleAr: 'أطقم ملايات 600 خيط بخصم يصل إلى 20٪', subtitleEn: '600-thread-count sheet sets, up to 20% off', ctaAr: 'تسوّقي المفارش', ctaEn: 'Shop bedding', link: '/c/bedding' },
+    ];
+    for (const [i, b] of banners.entries()) {
+      const png = await renderBannerImage(b.vertical, b.color, b.accent);
+      const image = await media.upload({ buffer: png, originalname: `banner-${i}.png`, size: png.length }, undefined, { altAr: b.titleAr, altEn: b.titleEn });
+      await media.generateRenditions(image.id);
+      await prisma.banner.create({
+        data: { placement: 'HERO', sortOrder: i, titleAr: b.titleAr, titleEn: b.titleEn, subtitleAr: b.subtitleAr, subtitleEn: b.subtitleEn, ctaAr: b.ctaAr, ctaEn: b.ctaEn, link: b.link, imageArId: image.id, imageEnId: image.id },
+      });
+    }
+    await prisma.banner.create({
+      data: { placement: 'STRIP', titleAr: 'عينات القماش مجانية', titleEn: 'Free fabric samples', subtitleAr: 'اطلبي حتى 3 عينات لكل منتج قبل التفصيل', subtitleEn: 'Order up to 3 swatches per product before you commit', link: '/c/custom-curtains' },
+    });
+    log('✓ banners');
+  }
 
   const { indexed } = await search.reindexAll();
   log(`✓ search index: ${indexed} products`);

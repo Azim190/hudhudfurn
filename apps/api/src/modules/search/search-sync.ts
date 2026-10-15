@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import type { Job, Queue } from 'bullmq';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { QUEUES } from '../../core/queue/queue.module';
+import { StorefrontRevalidator } from '../content/storefront-revalidator';
 import { SearchService } from './search.service';
 
 /** Producers call this after any catalog write; indexing happens asynchronously and is retried. */
@@ -53,12 +54,17 @@ export class SearchSync {
 
 @Processor(QUEUES.search, { concurrency: 1 })
 export class SearchProcessor extends WorkerHost {
-  constructor(private readonly search: SearchService) {
+  constructor(
+    private readonly search: SearchService,
+    private readonly revalidator: StorefrontRevalidator,
+  ) {
     super();
   }
 
   async process(job: Job<{ ids?: string[]; all?: boolean }>) {
-    if (job.data.all) return this.search.reindexAll();
-    return this.search.syncProducts(job.data.ids ?? []);
+    const result = job.data.all ? await this.search.reindexAll() : await this.search.syncProducts(job.data.ids ?? []);
+    // Listings and product pages are cached by the storefront; drop them once the index is fresh.
+    await this.revalidator.tags(['catalog']);
+    return result;
   }
 }

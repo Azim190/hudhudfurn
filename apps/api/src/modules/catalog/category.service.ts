@@ -57,6 +57,21 @@ export class CategoryService {
     // Parent counts include their descendants.
     const total = (n: CategoryNode): number => (n.productCount += n.children.reduce((s, c) => s + total(c), 0));
     roots.forEach(total);
+
+    // Categories without their own artwork show the newest product photo from their subtree.
+    const covers = await this.prisma.product.findMany({
+      where: { status: 'ACTIVE', deletedAt: null, media: { some: {} } },
+      orderBy: { publishedAt: 'desc' },
+      select: { categoryId: true, media: { orderBy: { sortOrder: 'asc' }, take: 1, include: { media: true } } },
+    });
+    const coverBy = new Map<string, string>();
+    for (const p of covers) if (!coverBy.has(p.categoryId) && p.media[0]) coverBy.set(p.categoryId, this.media.toDto(p.media[0].media).thumbnailUrl);
+    const fill = (n: CategoryNode): string | null => {
+      const fromChildren = n.children.map(fill).find(Boolean) ?? null;
+      n.imageUrl ??= coverBy.get(n.id) ?? fromChildren;
+      return n.imageUrl;
+    };
+    roots.forEach(fill);
     return roots;
   }
 

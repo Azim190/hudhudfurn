@@ -13,7 +13,7 @@ for (const locale of ['ar', 'en'] as const) {
 
     test('wrong credentials show a localized error', async ({ page }) => {
       await page.goto(`${ADMIN}/${locale}/login`);
-      await page.getByLabel(locale === 'ar' ? 'البريد الإلكتروني' : 'Email').fill('nobody@example.com');
+      await page.getByLabel(locale === 'ar' ? 'البريد الإلكتروني' : 'Email').fill(`nobody-${Date.now()}-${Math.random().toString(36).slice(2, 6)}@example.com`);
       await page.getByLabel(locale === 'ar' ? 'كلمة المرور' : 'Password').fill('definitely-wrong');
       await page.getByRole('button', { name: locale === 'ar' ? 'دخول' : 'Sign in' }).click();
       await expect(page.locator('form').getByRole('alert')).toHaveText(

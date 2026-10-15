@@ -98,6 +98,24 @@ test('Arabic product editor mirrors the layout', async ({ page }) => {
   await expect(page).toHaveScreenshot('admin-product-editor-ar.png', { mask: [page.locator('img')] });
 });
 
+test('admin edits reach the cached storefront page within seconds (on-demand revalidation)', async ({ page, request }) => {
+  const STORE = process.env.STOREFRONT_URL ?? 'http://localhost:3100';
+  const slug = 'magnetic-curtain-tie-backs-pair';
+  await request.get(`${STORE}/en/p/${slug}`); // make sure the page is cached
+  const list = await request.get(`${ADMIN}/bff/admin/products?q=Magnetic`);
+  const { items } = (await list.json()) as { items: Array<{ id: string; nameEn: string }> };
+  const product = items.find((p) => p.nameEn.startsWith('Magnetic Curtain Tie-Backs'))!;
+  const patch = (nameEn: string) => request.patch(`${ADMIN}/bff/admin/products/${product.id}`, { data: { nameEn }, headers: { Origin: ADMIN } });
+  try {
+    expect((await patch('Magnetic Curtain Tie-Backs (pair) – Edited')).ok()).toBe(true);
+    await expect
+      .poll(async () => (await (await request.get(`${STORE}/en/p/${slug}`)).text()).includes('Tie-Backs (pair) – Edited'), { timeout: 20_000 })
+      .toBe(true);
+  } finally {
+    await patch('Magnetic Curtain Tie-Backs (pair)');
+  }
+});
+
 test('categories and attributes screens', async ({ page }) => {
   await page.goto(`${ADMIN}/en/catalog/categories`);
   await expect(page.getByRole('button', { name: /Abayas\s+12 products/ })).toBeVisible();

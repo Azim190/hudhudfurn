@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 const LOCALES = [
-  { locale: 'ar', dir: 'rtl', hero: 'أناقة بيتك تبدأ من هنا', switchTo: 'تغيير اللغة إلى الإنجليزية', phoneError: 'أدخل رقم جوال سعودي صحيح يبدأ بـ 05' },
-  { locale: 'en', dir: 'ltr', hero: 'A more beautiful home starts here', switchTo: 'Switch language to Arabic', phoneError: 'Enter a valid Saudi mobile number starting with 05' },
+  { locale: 'ar', dir: 'rtl', hero: 'هدهد – ستائر ومفروشات وعبايات بلمسة أنيقة', cta: 'اكتشفي الستائر', switchTo: 'تغيير اللغة إلى الإنجليزية', phoneError: 'أدخل رقم جوال سعودي صحيح يبدأ بـ 05' },
+  { locale: 'en', dir: 'ltr', hero: 'HUDHUD – Curtains, home textiles and abayas, elegantly made', cta: 'Explore curtains', switchTo: 'Switch language to Arabic', phoneError: 'Enter a valid Saudi mobile number starting with 05' },
 ] as const;
 
 for (const l of LOCALES) {
@@ -16,13 +16,14 @@ for (const l of LOCALES) {
       // "Forward" chevrons must point in the reading direction: flipped in RTL only.
       // Tailwind v4 mirrors with the CSS `scale` property rather than `transform`.
       const scale = await page
-        .getByRole('link', { name: /تسوّق الآن|Shop now/ })
+        .getByRole('link', { name: l.cta })
         .locator('svg')
         .evaluate((el) => getComputedStyle(el).scale);
       if (l.dir === 'rtl') expect(scale).toMatch(/^-1/);
       else expect(['none', '1', '1 1']).toContain(scale);
 
-      await expect(page).toHaveScreenshot(`home-${l.locale}.png`, { fullPage: true });
+      // Masked: the carousel autoplays and product images load lazily.
+      await expect(page).toHaveScreenshot(`home-${l.locale}.png`, { mask: [page.locator('picture'), page.locator('section[aria-roledescription=carousel]')] });
     });
 
     test('language switcher keeps the current page', async ({ page }) => {

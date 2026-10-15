@@ -11,7 +11,10 @@ import { RedisThrottlerStorage } from './core/throttler/redis-throttler.storage'
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { ContentModule, RevalidationModule } from './modules/content/content.module';
+import { ShopModule } from './modules/shop/shop.module';
 import { MediaModule } from './modules/media/media.module';
 import { SearchModule } from './modules/search/search.module';
 import { StorageModule } from './modules/storage/storage.module';
@@ -23,6 +26,7 @@ import { UsersModule } from './modules/users/users.module';
     CoreModule,
     QueueModule,
     StorageModule,
+    RevalidationModule,
     LoggerModule.forRootAsync({
       inject: [AppConfig],
       useFactory: (config: AppConfig) => ({
@@ -57,6 +61,9 @@ import { UsersModule } from './modules/users/users.module';
     MediaModule,
     SearchModule,
     CatalogModule,
+    CartModule,
+    ShopModule,
+    ContentModule,
   ],
   providers: [
     // Order matters: throttle first, then authenticate (AuthModule), then authorise.

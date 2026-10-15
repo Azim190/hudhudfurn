@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { notifyCookieChange } from '@/lib/client-cookies';
+import { mergeGuestWishlist } from '@/lib/shop-store';
 
 interface OtpRequestResult {
   phone: string;
@@ -82,6 +83,7 @@ export function OtpLoginForm({ next }: { next: string }) {
     try {
       await post('/bff/auth/otp/verify', { phone: challenge.phone, code: value }, locale);
       notifyCookieChange();
+      await mergeGuestWishlist();
       router.replace(next);
       router.refresh();
     } catch (err) {

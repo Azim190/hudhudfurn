@@ -74,7 +74,7 @@ export function AccountLink() {
   return (
     <Link
       href={signedIn ? '/account' : '/login'}
-      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium whitespace-nowrap text-white hover:bg-brand-700"
     >
       {signedIn ? t('account') : t('login')}
     </Link>

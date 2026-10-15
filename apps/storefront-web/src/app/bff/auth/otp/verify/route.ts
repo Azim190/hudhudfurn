@@ -10,6 +10,7 @@ import {
   type IssuedTokens,
 } from '@hudhud/web-core';
 import { NextResponse, type NextRequest } from 'next/server';
+import { mergeGuestCart } from '@/lib/cart-bff';
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return forbiddenOrigin();
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
     // Tokens go into httpOnly cookies only; the browser never sees them.
     const res = NextResponse.json({ isNewUser: result.isNewUser });
     writeSession(res.cookies, STOREFRONT_COOKIES, result);
+    await mergeGuestCart(req, res, result.accessToken);
     return res;
   } catch (err) {
     return errorResponse(err);

@@ -5,3 +5,4 @@ export * from './search';
 export * from './rbac';
 export * from './orders';
 export * from './catalog';
+export * from './cart';

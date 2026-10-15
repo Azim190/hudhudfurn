@@ -24,7 +24,15 @@ export type ErrorCode =
   | 'sessionRotated'
   | 'accountBlocked'
   | 'emailTaken'
-  | 'lastOwner';
+  | 'lastOwner'
+  | 'outOfStock'
+  | 'insufficientStock'
+  | 'configurationRequired'
+  | 'measurementsRequired'
+  | 'productUnavailable'
+  | 'sampleUnavailable'
+  | 'cartLimit'
+  | 'alreadyInStock';
 
 export class AppError extends Error {
   constructor(

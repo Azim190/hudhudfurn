@@ -44,7 +44,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     const locale = localeOf(req);
-    const message = translate(locale, `errors.${code}`);
+    // Primitive details (e.g. { available: 2 }) fill {placeholders} in the localized message.
+    const params =
+      details && typeof details === 'object'
+        ? Object.fromEntries(Object.entries(details).filter((e): e is [string, string | number] => ['string', 'number'].includes(typeof e[1])))
+        : {};
+    const message = translate(locale, `errors.${code}`, params);
     const body: ErrorBody = {
       statusCode: status,
       code,

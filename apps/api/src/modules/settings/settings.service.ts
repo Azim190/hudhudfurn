@@ -12,6 +12,10 @@ export const SETTING_DEFAULTS = {
   'store.legal': { commercialRegistration: '', vatNumber: '', legalNameAr: '', legalNameEn: '' },
   'store.contact': { phone: '', whatsapp: '', email: '' },
   'tax.vat': { rateBp: SA_STANDARD_VAT_BP, pricesIncludeVat: true },
+  'cart.giftWrap': { priceHalalas: 1500 },
+  'cart.limits': { maxLines: 50, maxQuantityPerLine: 20 },
+  /** Delivery estimate (days) by region until shipping zones arrive; made-to-measure adds production time. */
+  'shipping.eta': { riyadhMin: 1, riyadhMax: 2, mainMin: 2, mainMax: 3, otherMin: 3, otherMax: 5, productionMin: 7, productionMax: 12 },
   'modules.enabled': {
     loyalty: false,
     fabricSamples: true,

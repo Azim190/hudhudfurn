@@ -17,3 +17,9 @@ export function localizedAlternates(locale: Locale, path: string): Metadata['alt
     languages: { ...languages, 'x-default': `${siteUrl()}/ar${clean}` },
   };
 }
+
+/** Alternates for pages whose slug differs per language (categories, products, collections). */
+export function slugAlternates(locale: Locale, prefix: string, slugs: { ar: string; en: string }): Metadata['alternates'] {
+  const url = (l: Locale) => `${siteUrl()}/${l}${prefix}/${encodeURIComponent(l === 'en' ? slugs.en : slugs.ar)}`;
+  return { canonical: url(locale), languages: { ar: url('ar'), en: url('en'), 'x-default': url('ar') } };
+}

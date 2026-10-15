@@ -99,6 +99,8 @@ jobs:
       TRUST_PROXY: 'true'
       API_INTERNAL_URL: http://localhost:4100/api/v1
       STOREFRONT_URL: http://localhost:3100
+      STOREFRONT_REVALIDATE_URL: http://localhost:3100/bff/revalidate
+      REVALIDATE_SECRET: ci-revalidate-secret-ci-revalidate-secret
       S3_BUCKET: hudhud-media
       MEDIA_PUBLIC_BASE_URL: http://localhost:8333/hudhud-media
       SEED_OWNER_EMAIL: owner@ci.test
@@ -111,15 +113,20 @@ jobs:
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @hudhud/api prisma:generate
-      - run: pnpm turbo run build
+      # The API must be up before the web builds: they pre-render cached (ISR) pages from it.
+      - run: pnpm turbo run build --filter=@hudhud/api...
       - name: Migrate and seed (reference data + bilingual sample catalog)
         run: |
           pnpm --filter @hudhud/api exec prisma migrate deploy
           pnpm --filter @hudhud/api prisma:seed
           (cd apps/api && node dist/cli/seed-catalog.js)
-      - name: Start API, storefront and admin
+      - name: Start API
         run: |
           (cd apps/api && node dist/main.js &)
+          npx --yes wait-on@8 -t 60000 http://localhost:4100/api/v1/health/ready
+      - run: pnpm turbo run build --filter=@hudhud/storefront-web --filter=@hudhud/admin-web
+      - name: Start storefront and admin
+        run: |
           (cd apps/storefront-web && npx next start --port 3100 &)
           (cd apps/admin-web && npx next start --port 3101 &)
           npx --yes wait-on@8 -t 60000 http://localhost:4100/api/v1/health/ready http://localhost:3100/ar http://localhost:3101/ar/login

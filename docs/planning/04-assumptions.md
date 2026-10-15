@@ -47,3 +47,13 @@ Each item below is a sensible default chosen so work is not blocked. All of them
 30. **Stock is counted per location** (warehouse, branch, workshop). The storefront only shows whether an item is available or running low, never exact counts. Made-to-measure products are always available, because they are produced per order.
 31. **Facet filters** use the query form `f.<attribute>=code1,code2`: values of one attribute are ORed and different attributes are ANDed.
 32. **Windows Smart App Control** can block Rollup's unsigned native binary, so a pnpm override swaps in `@rollup/wasm-node` (functionally identical).
+
+## Added during Phase 3
+33. **Guest carts** are identified by an opaque token kept in an httpOnly cookie for 30 days, and only its hash is stored. At sign-in the guest cart merges into the customer's cart, with quantities capped by available stock. A customer has at most one active cart, enforced by a partial unique index.
+34. **Cart limits** (settings `cart.limits`): 50 lines, 20 units per line and 3 fabric samples per line. Stock is checked when items are added and again on every cart view. It is reserved only at checkout (Phase 4).
+35. **Gift wrapping** is SAR 15 per wrapped unit (settings `cart.giftWrap`, switched on by `modules.enabled.giftWrapping`). It is taxed together with its line.
+36. **Measured products**: blinds take width × height between 20 and 600 cm, and fabric takes a length between 50 and 2000 cm. Made-to-measure products priced by the configurator (CALCULATED) can't be added to the cart until the configurator exists (Phase 5); the product page offers WhatsApp contact instead.
+37. **Interim delivery estimate** (settings `shipping.eta`): Riyadh 1–2 business days, other major cities 2–3, everywhere else 3–5, plus 7–12 days of tailoring for made-to-measure. Shipping zones and carrier ETAs replace this in Phase 4.
+38. **Reviews** are listed now. Customers submit them after a delivered order, so submission and moderation arrive with orders.
+39. **Wishlist** is saved on the device for guests and moves into the account at sign-in. Compare holds up to 4 products and recently viewed holds 12, both device-local.
+40. **Caching**: the home and product pages are ISR (5 minutes), and category and search pages render per request from cached API data. Catalog and content writes trigger on-demand revalidation, so edits appear within seconds.

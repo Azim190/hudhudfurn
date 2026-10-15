@@ -92,14 +92,14 @@ export class CatalogPresenter {
       attrGroups.set(a.key, group);
     }
 
-    const axes = new Map<string, { key: string; nameAr: string; nameEn: string | null; type: string; values: Map<string, ReturnType<typeof optionView>> }>();
+    const axes = new Map<string, { key: string; nameAr: string; nameEn: string | null; type: string; sortOrder: number; values: Map<string, ReturnType<typeof optionView> & { sortOrder: number }> }>();
     const variants = p.variants
       .filter((v) => v.isActive)
       .map((v) => {
         for (const o of v.options) {
           const a = o.value.attribute;
-          const axis = axes.get(a.key) ?? { key: a.key, nameAr: a.nameAr, nameEn: a.nameEn, type: a.type, values: new Map() };
-          axis.values.set(o.value.code, optionView(o));
+          const axis = axes.get(a.key) ?? { key: a.key, nameAr: a.nameAr, nameEn: a.nameEn, type: a.type, sortOrder: a.sortOrder, values: new Map() };
+          axis.values.set(o.value.code, { ...optionView(o), sortOrder: o.value.sortOrder });
           axes.set(a.key, axis);
         }
         const available = availableQuantity(v);
@@ -133,7 +133,10 @@ export class CatalogPresenter {
         ? { titleAr: p.sizeGuide.titleAr, titleEn: p.sizeGuide.titleEn, table: p.sizeGuide.table, howToMeasureAr: p.sizeGuide.howToMeasureAr, howToMeasureEn: p.sizeGuide.howToMeasureEn }
         : null,
       attributes: [...attrGroups.values()],
-      axes: [...axes.values()].map((a) => ({ ...a, values: [...a.values.values()] })),
+      // Axes and their values follow the configured attribute order (e.g. colour before size).
+      axes: [...axes.values()]
+        .sort((x, y) => x.sortOrder - y.sortOrder)
+        .map(({ sortOrder: _s, values, ...a }) => ({ ...a, values: [...values.values()].sort((x, y) => x.sortOrder - y.sortOrder).map(({ sortOrder: _v, ...v }) => v) })),
       variants,
       media: p.media.map((m) => ({ ...this.media.toDto(m.media), variantId: m.variantId })),
       publishedAt: p.publishedAt,

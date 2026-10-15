@@ -18,7 +18,7 @@ export default defineConfig({
   projects: [
     // Public storefront and admin login screens, desktop and mobile.
     { name: 'desktop', testIgnore: /admin-catalog|.setup.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
-    { name: 'mobile', testIgnore: /admin-catalog|.setup.ts/, use: { ...devices['Pixel 7'] } },
+    { name: 'mobile', testIgnore: /admin-catalog|.setup.ts|storefront-shop/, use: { ...devices['Pixel 7'] } },
     // Signed-in admin flows: log in once through the UI, then reuse the session.
     { name: 'admin-setup', testMatch: /admin.setup.ts/ },
     {

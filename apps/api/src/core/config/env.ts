@@ -63,6 +63,10 @@ export const envSchema = z.object({
   MEILI_API_KEY: z.string().min(1),
   MEILI_INDEX_PREFIX: z.string().default(''),
 
+  /** Storefront on-demand ISR revalidation endpoint and shared secret (optional). */
+  STOREFRONT_REVALIDATE_URL: z.string().url().optional(),
+  REVALIDATE_SECRET: z.string().min(32).optional(),
+
   SMS_PROVIDER: z.enum(['console', 'unifonic']).default('console'),
   UNIFONIC_APP_SID: z.string().optional(),
   UNIFONIC_SENDER_ID: z.string().optional(),

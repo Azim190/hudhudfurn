@@ -93,3 +93,19 @@ export async function renderProductImage(vertical: string, colorHex: string, var
   </svg>`;
   return sharp(Buffer.from(svg)).png().toBuffer();
 }
+
+/** Wide banner artwork (1920×840): soft gradient with a vertical-themed illustration on one side. */
+export async function renderBannerImage(vertical: string, colorHex: string, accentHex: string): Promise<Buffer> {
+  const W2 = 1920;
+  const H2 = 840;
+  const scale = 0.62;
+  const art = vertical === 'CURTAINS' ? curtains(colorHex) : vertical === 'BEDDING' ? bed(colorHex) : vertical === 'SOFA_COVERS' ? sofa(colorHex) : abaya(colorHex, true);
+  // The illustration sits in the middle so text can overlay either side (RTL or LTR).
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W2}" height="${H2}" viewBox="0 0 ${W2} ${H2}">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${shade(accentHex, 0.25)}"/><stop offset="1" stop-color="${shade(accentHex, -0.1)}"/></linearGradient></defs>
+    <rect width="${W2}" height="${H2}" fill="url(#g)"/>
+    <circle cx="${W2 / 2}" cy="${H2 / 2}" r="360" fill="#fff" opacity="0.18"/>
+    <g transform="translate(${W2 / 2 - (1200 * scale) / 2} ${H2 / 2 - (1500 * scale) / 2}) scale(${scale})">${art}</g>
+  </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}

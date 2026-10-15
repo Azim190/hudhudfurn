@@ -79,6 +79,25 @@ Admin (permission in brackets):
 | POST, GET | /admin/products/import (multipart xlsx/csv → job), /admin/jobs/:id, GET /admin/products/export?format=xlsx|csv [catalog.product.import] |
 | POST | /admin/search/reindex [settings.write] |
 
+## Storefront: as implemented in Phase 3
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | /cart, /cart/count | Guest (`X-Cart-Token`) or customer | Priced cart: VAT, gift wrap, per-line `issue` (out of stock, unavailable, needs measurements), `canCheckout` |
+| POST | /cart/items | Guest or customer | `variantId, quantity, isSample?, widthMm/heightMm` (per m²), `lengthCm` (per metre), `giftWrap?, giftMessage?`. Returns `cartToken` once, when a guest cart is created |
+| PATCH, DELETE | /cart/items/:id | Same cart only | Quantity (capped by stock), gift wrap and message |
+| POST | /cart/merge | Customer | Folds the guest cart into the customer's cart after sign-in |
+| GET, PUT | /me/wishlist, /me/wishlist/ids | Customer | PUT adds one or many product ids (also merges a device wishlist) |
+| DELETE | /me/wishlist/:productId | Customer | |
+| POST | /variants/:id/notify-me | Customer | Back-in-stock alert, only for unavailable variants |
+| GET | /products-cards?ids= | Public | Up to 24 cards in the requested order (compare, recently viewed) |
+| GET | /delivery-estimate?city=&productId= | Public | Business-day window (Fri/Sat weekend) plus tailoring time for made-to-measure |
+| GET | /products/:id/reviews | Public | Approved reviews and a rating histogram |
+| GET | /content/home | Public | Live hero/strip banners, category tiles, live collections with products |
+| GET, POST, PATCH, DELETE | /admin/banners | marketing.read / marketing.write | Scheduled, bilingual banners; links must be internal paths |
+
+The storefront BFF adds `POST /bff/revalidate` (Bearer `REVALIDATE_SECRET`, tags `catalog`, `content`, `store-info`), which the API calls after catalog and content writes.
+
 ## Configurator
 | Method | Path | Auth | Purpose |
 |---|---|---|---|

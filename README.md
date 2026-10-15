@@ -61,8 +61,8 @@ node scripts/check-logical-css.mjs apps/storefront-web/src   # bans physical lef
 | 0 | ERD, module plan, API list, assumptions | ✅ |
 | 1 | Foundation: monorepo, OTP auth, staff 2FA, RBAC, audit, i18n/RTL, design system | ✅ |
 | 2 | Catalog: categories, products, variants, attributes, media, search, inventory, import/export | ✅ |
-| 3 | Storefront browsing, product pages, cart, wishlist | ⏳ next |
-| 4 | Checkout, payments, VAT, shipping, ZATCA invoices | |
+| 3 | Storefront browsing, product pages, cart, wishlist, compare, banners | ✅ |
+| 4 | Checkout, payments, VAT, shipping, ZATCA invoices | ⏳ next |
 | 5 | Made-to-measure configurators | |
 | 6 | Measurement/installation services, technician flow, quotations | |
 | 7 | Admin: orders, inventory, workshop, reports, marketing, settings | |

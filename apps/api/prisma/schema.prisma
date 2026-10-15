@@ -61,6 +61,9 @@ model User {
   consents     ConsentRecord[]
   dataRequests DataSubjectRequest[]
   auditLogs    AuditLog[]
+  wishlist     WishlistItem[]
+  stockAlerts  BackInStockSubscription[]
+  reviews      Review[]
 
   @@index([kind, status])
   @@map("users")
@@ -506,6 +509,8 @@ model Product {
   collections      CollectionProduct[]
   relations        ProductRelation[]       @relation("ProductRelationSource")
   relatedFrom      ProductRelation[]       @relation("ProductRelationTarget")
+  wishlistedBy     WishlistItem[]
+  reviews          Review[]
 
   @@index([categoryId, status])
   @@index([status, publishedAt])
@@ -524,28 +529,30 @@ model ProductAttributeValue {
 }
 
 model ProductVariant {
-  id             String               @id @default(uuid()) @db.Uuid
-  productId      String               @map("product_id") @db.Uuid
-  sku            String               @unique
-  barcode        String?              @unique
+  id             String                    @id @default(uuid()) @db.Uuid
+  productId      String                    @map("product_id") @db.Uuid
+  sku            String                    @unique
+  barcode        String?                   @unique
   /// Halalas; null means the product base price applies.
   price          Int?
-  compareAtPrice Int?                 @map("compare_at_price")
-  weightGrams    Int?                 @map("weight_grams")
+  compareAtPrice Int?                      @map("compare_at_price")
+  weightGrams    Int?                      @map("weight_grams")
   /// For fabric sold by length (curtains): usable fabric width in mm.
-  fabricWidthMm  Int?                 @map("fabric_width_mm")
+  fabricWidthMm  Int?                      @map("fabric_width_mm")
   /// Stable combination key, e.g. "color=black|size=M" (see domain combinationKey).
-  optionKey      String               @map("option_key")
-  isDefault      Boolean              @default(false) @map("is_default")
-  isActive       Boolean              @default(true) @map("is_active")
-  sortOrder      Int                  @default(0) @map("sort_order")
-  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
-  product        Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionKey      String                    @map("option_key")
+  isDefault      Boolean                   @default(false) @map("is_default")
+  isActive       Boolean                   @default(true) @map("is_active")
+  sortOrder      Int                       @default(0) @map("sort_order")
+  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  product        Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
   options        VariantOptionValue[]
   media          ProductMedia[]
   stock          StockLevel[]
   movements      StockMovement[]
+  cartItems      CartItem[]
+  stockAlerts    BackInStockSubscription[]
 
   @@unique([productId, optionKey])
   @@map("product_variants")
@@ -579,6 +586,8 @@ model MediaAsset {
   products    ProductMedia[]
   categories  Category[]     @relation("CategoryImage")
   collections Collection[]   @relation("CollectionImage")
+  bannersAr   Banner[]       @relation("BannerImageAr")
+  bannersEn   Banner[]       @relation("BannerImageEn")
 
   @@map("media_assets")
 }
@@ -760,4 +769,139 @@ model BackgroundJob {
 
   @@index([kind, createdAt])
   @@map("background_jobs")
+}
+
+// ─────────────────────────────── Storefront: cart, wishlist, content, reviews ───────────────────────────────
+
+enum CartStatus {
+  ACTIVE
+  MERGED
+  CONVERTED
+  ABANDONED
+}
+
+/// A guest cart is identified by an opaque token (only its sha256 is stored); a customer cart by user.
+model Cart {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String?    @map("user_id") @db.Uuid
+  guestTokenHash String?    @unique @map("guest_token_hash")
+  status         CartStatus @default(ACTIVE)
+  lastActivityAt DateTime   @default(now()) @map("last_activity_at") @db.Timestamptz(3)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  items          CartItem[]
+
+  @@index([userId, status])
+  @@index([status, lastActivityAt])
+  @@map("carts")
+}
+
+model CartItem {
+  id          String         @id @default(uuid()) @db.Uuid
+  cartId      String         @map("cart_id") @db.Uuid
+  variantId   String         @map("variant_id") @db.Uuid
+  quantity    Int
+  /// Fabric swatch sample of the variant instead of the product itself.
+  isSample    Boolean        @default(false) @map("is_sample")
+  /// For PER_METER (lengthCm) and PER_SQM (widthMm, heightMm) products.
+  lengthCm    Int?           @map("length_cm")
+  widthMm     Int?           @map("width_mm")
+  heightMm    Int?           @map("height_mm")
+  giftWrap    Boolean        @default(false) @map("gift_wrap")
+  giftMessage String?        @map("gift_message")
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cart        Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+model WishlistItem {
+  userId    String   @map("user_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([userId, productId])
+  @@index([productId])
+  @@map("wishlist_items")
+}
+
+/// Notified when the variant becomes available again (delivery in the notifications phase).
+model BackInStockSubscription {
+  id         String         @id @default(uuid()) @db.Uuid
+  variantId  String         @map("variant_id") @db.Uuid
+  userId     String         @map("user_id") @db.Uuid
+  locale     Locale         @default(ar)
+  notifiedAt DateTime?      @map("notified_at") @db.Timestamptz(3)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, userId])
+  @@index([variantId, notifiedAt])
+  @@map("back_in_stock_subscriptions")
+}
+
+enum BannerPlacement {
+  HERO
+  STRIP
+  CATEGORY
+}
+
+/// Bilingual, scheduled merchandising banners. Each language has its own artwork (text is often in the image).
+model Banner {
+  id         String          @id @default(uuid()) @db.Uuid
+  placement  BannerPlacement @default(HERO)
+  titleAr    String          @map("title_ar")
+  titleEn    String?         @map("title_en")
+  subtitleAr String?         @map("subtitle_ar")
+  subtitleEn String?         @map("subtitle_en")
+  ctaAr      String?         @map("cta_ar")
+  ctaEn      String?         @map("cta_en")
+  /// Locale-less storefront path, e.g. "/c/abayas" or "/collections/ramadan".
+  link       String?
+  imageArId  String?         @map("image_ar_id") @db.Uuid
+  imageEnId  String?         @map("image_en_id") @db.Uuid
+  categoryId String?         @map("category_id") @db.Uuid
+  startsAt   DateTime?       @map("starts_at") @db.Timestamptz(3)
+  endsAt     DateTime?       @map("ends_at") @db.Timestamptz(3)
+  isActive   Boolean         @default(true) @map("is_active")
+  sortOrder  Int             @default(0) @map("sort_order")
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  imageAr    MediaAsset?     @relation("BannerImageAr", fields: [imageArId], references: [id], onDelete: SetNull)
+  imageEn    MediaAsset?     @relation("BannerImageEn", fields: [imageEnId], references: [id], onDelete: SetNull)
+
+  @@index([placement, isActive, sortOrder])
+  @@map("banners")
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Customer reviews. Submission requires a delivered order (Phase 4+); the storefront lists approved ones.
+model Review {
+  id         String       @id @default(uuid()) @db.Uuid
+  productId  String       @map("product_id") @db.Uuid
+  userId     String?      @map("user_id") @db.Uuid
+  rating     Int
+  title      String?
+  body       String?      @db.Text
+  locale     Locale       @default(ar)
+  status     ReviewStatus @default(PENDING)
+  authorName String?      @map("author_name")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId, status, createdAt])
+  @@map("reviews")
 }
