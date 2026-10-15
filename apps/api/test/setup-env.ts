@@ -20,3 +20,13 @@ process.env.JWT_ACCESS_SECRET ??= fallback;
 process.env.JWT_MFA_SECRET ??= `${fallback}-mfa`;
 process.env.OTP_PEPPER ??= `${fallback}-otp`;
 process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
+
+// Isolated object storage bucket and search index for tests.
+process.env.S3_BUCKET = process.env.TEST_S3_BUCKET ?? 'hudhud-media-test';
+process.env.MEILI_INDEX_PREFIX = 'test_';
+process.env.S3_ENDPOINT ??= 'http://localhost:8333';
+process.env.S3_ACCESS_KEY ??= 'hudhud';
+process.env.S3_SECRET_KEY ??= 'hudhud-dev-secret';
+process.env.MEDIA_PUBLIC_BASE_URL = `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}`;
+process.env.MEILI_HOST ??= 'http://localhost:7700';
+process.env.MEILI_API_KEY ??= 'dev_master_key_change_me_please';

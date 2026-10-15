@@ -46,6 +46,23 @@ export const envSchema = z.object({
   STAFF_LOGIN_LOCK_SECONDS: z.coerce.number().int().positive().default(900),
   TOTP_ISSUER: z.string().default('HUDHUD'),
 
+  /** Run BullMQ workers in this process (disable on API-only replicas). */
+  WORKERS_ENABLED: bool.default('true'),
+
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default('me-central-1'),
+  S3_BUCKET: z.string().default('hudhud-media'),
+  S3_ACCESS_KEY: z.string().min(1),
+  S3_SECRET_KEY: z.string().min(1),
+  S3_FORCE_PATH_STYLE: bool.default('true'),
+  /** Public base URL for media (CDN in production), e.g. https://cdn.example.sa/hudhud-media */
+  MEDIA_PUBLIC_BASE_URL: z.string().url(),
+  MAX_UPLOAD_MB: z.coerce.number().positive().max(50).default(15),
+
+  MEILI_HOST: z.string().url().default('http://localhost:7700'),
+  MEILI_API_KEY: z.string().min(1),
+  MEILI_INDEX_PREFIX: z.string().default(''),
+
   SMS_PROVIDER: z.enum(['console', 'unifonic']).default('console'),
   UNIFONIC_APP_SID: z.string().optional(),
   UNIFONIC_SENDER_ID: z.string().optional(),

@@ -15,6 +15,10 @@ const baseEnv = {
   JWT_MFA_SECRET: 'b'.repeat(32),
   OTP_PEPPER: 'c'.repeat(32),
   ENCRYPTION_KEY: Buffer.alloc(32, 1).toString('base64'),
+  S3_ACCESS_KEY: 'key',
+  S3_SECRET_KEY: 'secret',
+  MEDIA_PUBLIC_BASE_URL: 'https://cdn.example.sa/media',
+  MEILI_API_KEY: 'meili',
 };
 
 describe('validateEnv', () => {

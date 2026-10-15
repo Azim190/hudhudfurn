@@ -2,8 +2,25 @@
   "identities": [
     {
       "name": "hudhud",
-      "credentials": [{ "accessKey": "hudhud", "secretKey": "hudhud-dev-secret" }],
-      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+      "credentials": [
+        {
+          "accessKey": "hudhud",
+          "secretKey": "hudhud-dev-secret"
+        }
+      ],
+      "actions": [
+        "Admin",
+        "Read",
+        "Write",
+        "List",
+        "Tagging"
+      ]
+    },
+    {
+      "name": "anonymous",
+      "actions": [
+        "Read:hudhud-media"
+      ]
     }
   ]
 }

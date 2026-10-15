@@ -14,3 +14,10 @@ allowBuilds:
   "@scarf/scarf": false
   "@parcel/watcher": true
   "@swc/core": true
+  msgpackr-extract: true
+minimumReleaseAgeExclude:
+  - '@aws-sdk/client-s3@3.1152.0'
+# Windows Smart App Control blocks rollup's unsigned native binary on some developer machines;
+# the official WebAssembly build is functionally identical (used by vite/vitest).
+overrides:
+  rollup: npm:@rollup/wasm-node@4.64.5

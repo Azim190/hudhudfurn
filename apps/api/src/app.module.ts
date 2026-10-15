@@ -5,17 +5,24 @@ import { LoggerModule } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppConfig } from './core/config/app-config.service';
 import { CoreModule } from './core/core.module';
+import { QueueModule } from './core/queue/queue.module';
 import { AllExceptionsFilter } from './core/errors/all-exceptions.filter';
 import { RedisThrottlerStorage } from './core/throttler/redis-throttler.storage';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { MediaModule } from './modules/media/media.module';
+import { SearchModule } from './modules/search/search.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
     CoreModule,
+    QueueModule,
+    StorageModule,
     LoggerModule.forRootAsync({
       inject: [AppConfig],
       useFactory: (config: AppConfig) => ({
@@ -47,6 +54,9 @@ import { UsersModule } from './modules/users/users.module';
     AuthModule,
     UsersModule,
     AdminModule,
+    MediaModule,
+    SearchModule,
+    CatalogModule,
   ],
   providers: [
     // Order matters: throttle first, then authenticate (AuthModule), then authorise.
