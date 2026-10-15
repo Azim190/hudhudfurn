@@ -41,3 +41,9 @@ Each item below is a sensible default chosen so work is not blocked. All of them
 26. **Local ports**: API 4100, storefront 3100, admin 3101, Postgres 55432, Redis 56379. These avoid other services already running on the development machine, and every one is configurable through env.
 27. **Object storage**: SeaweedFS (S3-compatible) replaces MinIO locally, because MinIO no longer publishes public container images. Production uses a managed S3-compatible service.
 28. **First visits always open in Arabic**, whatever the browser's language, because many Saudi customers use English-language devices. Once a visitor picks a language with the switcher, that choice is stored in the `NEXT_LOCALE` cookie and wins on later visits. Signed-in users also have it saved to their profile.
+
+## Added during Phase 2
+29. **Product URLs** are `/ar/p/<arabic-slug>` and `/en/p/<english-slug>`, and category URLs are `/ar/c/<slug>` and `/en/c/<slug>`. Arabic slugs keep Arabic letters, and the API resolves either language's slug.
+30. **Stock is counted per location** (warehouse, branch, workshop). The storefront only shows whether an item is available or running low, never exact counts. Made-to-measure products are always available, because they are produced per order.
+31. **Facet filters** use the query form `f.<attribute>=code1,code2`: values of one attribute are ORed and different attributes are ANDed.
+32. **Windows Smart App Control** can block Rollup's unsigned native binary, so a pnpm override swaps in `@rollup/wasm-node` (functionally identical).

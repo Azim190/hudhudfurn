@@ -26,10 +26,11 @@ Requirements: Node 22+ (24 recommended), pnpm 11, Docker.
 
 ```bash
 pnpm install
-pnpm infra:up                     # Postgres :55432, Redis :56379, Meilisearch :7700, Mailpit :8025
+pnpm infra:up                     # Postgres :55432, Redis :56379, Meilisearch :7700, S3 :8333, Mailpit :8025
 cp .env.example apps/api/.env     # then fill in the secrets (generation commands are in the file)
 pnpm db:migrate && pnpm db:seed   # schema, roles/permissions, cities, first owner account
 pnpm build --filter "./packages/*"
+pnpm --filter @hudhud/api build && pnpm --filter @hudhud/api seed:catalog   # 48 bilingual sample products with images (add -- --reset to rebuild)
 pnpm dev
 ```
 
@@ -59,8 +60,8 @@ node scripts/check-logical-css.mjs apps/storefront-web/src   # bans physical lef
 |---|---|---|
 | 0 | ERD, module plan, API list, assumptions | ✅ |
 | 1 | Foundation: monorepo, OTP auth, staff 2FA, RBAC, audit, i18n/RTL, design system | ✅ |
-| 2 | Catalog: categories, products, variants, attributes, media, search | ⏳ next |
-| 3 | Storefront browsing, product pages, cart, wishlist | |
+| 2 | Catalog: categories, products, variants, attributes, media, search, inventory, import/export | ✅ |
+| 3 | Storefront browsing, product pages, cart, wishlist | ⏳ next |
 | 4 | Checkout, payments, VAT, shipping, ZATCA invoices | |
 | 5 | Made-to-measure configurators | |
 | 6 | Measurement/installation services, technician flow, quotations | |

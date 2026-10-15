@@ -10,6 +10,10 @@ export const dynamic = 'force-dynamic';
 
 const NAV = [
   { href: '/', key: 'admin.dashboard', permission: 'dashboard.view' },
+  { href: '/catalog/products', key: 'catalog.products', permission: 'catalog.product.read' },
+  { href: '/catalog/categories', key: 'catalog.categories', permission: 'catalog.category.read' },
+  { href: '/catalog/attributes', key: 'catalog.attributes', permission: 'catalog.attribute.read' },
+  { href: '/catalog/import', key: 'admin.importExport', permission: 'catalog.product.import' },
   { href: '/staff', key: 'admin.staff', permission: 'rbac.read' },
   { href: '/audit', key: 'admin.auditLog', permission: 'audit.view' },
 ] as const;

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { join } from 'node:path';
 
 /**
  * Expects the API (4100), storefront (3100) and admin (3101) to be running
@@ -15,7 +16,16 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    // Public storefront and admin login screens, desktop and mobile.
+    { name: 'desktop', testIgnore: /admin-catalog|.setup.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
+    { name: 'mobile', testIgnore: /admin-catalog|.setup.ts/, use: { ...devices['Pixel 7'] } },
+    // Signed-in admin flows: log in once through the UI, then reuse the session.
+    { name: 'admin-setup', testMatch: /admin.setup.ts/ },
+    {
+      name: 'admin',
+      testMatch: /admin-catalog.spec.ts/,
+      dependencies: ['admin-setup'],
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: join(__dirname, '.auth', 'admin.json') },
+    },
   ],
 });

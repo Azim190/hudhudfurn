@@ -50,6 +50,35 @@ Legend: **P** = public, **C** = authenticated customer, **G** = guest allowed (c
 | GET | /geo/cities, /geo/cities/:id/districts | Cities and districts |
 | GET | /store/info | Store name, CR and VAT numbers, contact, enabled modules |
 
+## Catalog: as implemented in Phase 2
+
+Public (cacheable: `Cache-Control: public, s-maxage=300`):
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | /categories | Active tree with product counts (descendants included) |
+| GET | /categories/:slug | Arabic or English slug → breadcrumb, children, facet definitions |
+| GET | /products | `category, collection, q, sort=relevance|newest|price_asc|price_desc|rating|discount, priceMin, priceMax (halalas), inStock, page, limit, f.<attr>=a,b` → cards, total, disjunctive `facetCounts`, `priceRange`, `degraded` |
+| GET | /products/:slug | Detail: axes, variants (availability, not counts), media renditions, attributes, size guide, breadcrumb, complete-the-look / cross-sell / similar |
+| GET | /collections/:slug | Live collections only (respects the start/end window) |
+| GET | /search, /search/suggest | Same as /products with `q`; suggestions |
+
+Admin (permission in brackets):
+
+| Method | Path |
+|---|---|
+| GET, POST | /admin/categories [catalog.category.read/write]; GET/PATCH/DELETE /admin/categories/:id; PUT /admin/categories/:id/attributes; GET /admin/categories/:id/effective-attributes |
+| GET, POST | /admin/attributes; PATCH/DELETE /admin/attributes/:id; POST /admin/attributes/:id/values; PATCH/DELETE /admin/attribute-values/:id [catalog.attribute.*] |
+| GET, POST, PATCH | /admin/brands, /admin/size-guides, /admin/collections (+ PUT /admin/collections/:id/products) |
+| GET, POST | /admin/products [catalog.product.read/write]; GET/PATCH/DELETE /admin/products/:id |
+| POST | /admin/products/:id/publish, /unpublish, /archive [catalog.product.publish] |
+| POST | /admin/products/:id/variants/generate; PATCH /admin/variants/:id |
+| PUT | /admin/products/:id/media [catalog.media.write]; PUT /admin/products/:id/relations |
+| POST, GET, PATCH, DELETE | /admin/media (multipart upload), /admin/media/:id |
+| GET, POST, PATCH | /admin/locations [inventory.*]; PUT /admin/variants/:id/stock; GET /admin/variants/:id/movements |
+| POST, GET | /admin/products/import (multipart xlsx/csv → job), /admin/jobs/:id, GET /admin/products/export?format=xlsx|csv [catalog.product.import] |
+| POST | /admin/search/reindex [settings.write] |
+
 ## Configurator
 | Method | Path | Auth | Purpose |
 |---|---|---|---|

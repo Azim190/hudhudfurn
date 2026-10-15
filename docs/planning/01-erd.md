@@ -4,7 +4,7 @@ Conventions used across all tables:
 
 - Primary keys are `uuid` (v7, time-ordered) named `id`.
 - Every table has `created_at` / `updated_at` (`timestamptz`); soft-deletable aggregates add `deleted_at`.
-- **Bilingual text** is stored as two columns `*_ar` / `*_en` for short scalar fields that are filtered, sorted or indexed (names, slugs), and as a `jsonb` `LocalizedText` (`{ "ar": "...", "en": "..." }`) for long-form content (descriptions, care instructions). Arabic is mandatory; English is optional, and the admin UI shows completeness.
+- **Bilingual text** is stored as two columns, `*_ar` / `*_en`, for every localized field, including descriptions and care text (see ADR-0003; this replaces the earlier `jsonb` plan for long-form text). Arabic is mandatory; English is optional, and the admin UI shows completeness.
 - Money is `integer` **halalas** (1 SAR = 100 halalas) to avoid floating-point errors. Measurements are `integer` millimetres. Fabric quantities are `integer` centimetres.
 - Configurable business values (fullness ratios, hems, VAT rate, return windows) live in data, never in code.
 

@@ -12,6 +12,12 @@ concurrency:
 env:
   NEXT_TELEMETRY_DISABLED: 1
   TURBO_TELEMETRY_DISABLED: 1
+  # Shared by jobs that run the API against real backing services.
+  S3_ENDPOINT: http://localhost:8333
+  S3_ACCESS_KEY: ci
+  S3_SECRET_KEY: ci-secret
+  MEILI_HOST: http://localhost:7700
+  MEILI_API_KEY: ci_master_key_ci_master_key
 
 jobs:
   verify:
@@ -31,7 +37,7 @@ jobs:
         run: pnpm turbo run test:cov
 
   api-integration:
-    name: API integration tests (Postgres + Redis)
+    name: API integration tests (Postgres, Redis, S3, Meilisearch)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -45,11 +51,18 @@ jobs:
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+      meilisearch:
+        image: getmeili/meilisearch:v1.15
+        env: { MEILI_MASTER_KEY: ci_master_key_ci_master_key, MEILI_ENV: development }
+        ports: ['7700:7700']
     env:
       TEST_DATABASE_URL: postgresql://hudhud:hudhud@localhost:5432/hudhud_test?schema=public
       TEST_REDIS_URL: redis://localhost:6379/1
     steps:
       - uses: actions/checkout@v4
+      # Service containers cannot take a command, so SeaweedFS (S3) is started here; without an
+      # IAM config it accepts any credentials, which is fine for an ephemeral CI runner.
+      - run: docker run -d --name s3 -p 8333:8333 chrislusf/seaweedfs:3.97 server -s3 && npx --yes wait-on@8 -t 60000 tcp:localhost:8333
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
@@ -72,6 +85,10 @@ jobs:
       redis:
         image: redis:7-alpine
         ports: ['6379:6379']
+      meilisearch:
+        image: getmeili/meilisearch:v1.15
+        env: { MEILI_MASTER_KEY: ci_master_key_ci_master_key, MEILI_ENV: development }
+        ports: ['7700:7700']
     env:
       DATABASE_URL: postgresql://hudhud:hudhud@localhost:5432/hudhud?schema=public
       REDIS_URL: redis://localhost:6379
@@ -81,17 +98,25 @@ jobs:
       ENCRYPTION_KEY: AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=
       TRUST_PROXY: 'true'
       API_INTERNAL_URL: http://localhost:4100/api/v1
+      STOREFRONT_URL: http://localhost:3100
+      S3_BUCKET: hudhud-media
+      MEDIA_PUBLIC_BASE_URL: http://localhost:8333/hudhud-media
       SEED_OWNER_EMAIL: owner@ci.test
       SEED_OWNER_PASSWORD: ci-owner-password-123
     steps:
       - uses: actions/checkout@v4
+      - run: docker run -d --name s3 -p 8333:8333 chrislusf/seaweedfs:3.97 server -s3 && npx --yes wait-on@8 -t 60000 tcp:localhost:8333
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @hudhud/api prisma:generate
       - run: pnpm turbo run build
-      - run: pnpm --filter @hudhud/api exec prisma migrate deploy && pnpm --filter @hudhud/api prisma:seed
+      - name: Migrate and seed (reference data + bilingual sample catalog)
+        run: |
+          pnpm --filter @hudhud/api exec prisma migrate deploy
+          pnpm --filter @hudhud/api prisma:seed
+          (cd apps/api && node dist/cli/seed-catalog.js)
       - name: Start API, storefront and admin
         run: |
           (cd apps/api && node dist/main.js &)
@@ -101,6 +126,9 @@ jobs:
       - run: pnpm --filter @hudhud/e2e exec playwright install --with-deps chromium
       # Baselines are OS-specific; missing Linux baselines are written and uploaded for review.
       - run: pnpm --filter @hudhud/e2e exec playwright test --update-snapshots=missing
+        env:
+          E2E_ADMIN_EMAIL: owner@ci.test
+          E2E_ADMIN_PASSWORD: ci-owner-password-123
       - uses: actions/upload-artifact@v4
         if: always()
         with:
