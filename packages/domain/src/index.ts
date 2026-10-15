@@ -6,3 +6,7 @@ export * from './rbac';
 export * from './orders';
 export * from './catalog';
 export * from './cart';
+export * from './promotions';
+export * from './shipping';
+export * from './checkout';
+export * from './zatca';

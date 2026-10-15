@@ -10,7 +10,7 @@ import { MegaMenu, MobileMenu } from './mega-menu';
 export async function SiteHeader() {
   const [t, tree] = await Promise.all([getTranslations(), getCategoryTree().catch(() => [])]);
   return (
-    <header className="sticky top-0 z-30 border-b border-sand-200 bg-sand-50/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-sand-200 bg-sand-50/95 backdrop-blur print:hidden">
       <div className="relative">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
           <MobileMenu tree={tree} />

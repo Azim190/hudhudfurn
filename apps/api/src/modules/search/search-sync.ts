@@ -20,12 +20,13 @@ export class SearchSync {
     const unique = [...new Set(ids)];
     if (unique.length === 0) return;
     try {
-      // Collapse bursts of edits to the same product into one indexing job.
+      // Collapse bursts of edits to the same product into one indexing job. An edit that arrives
+      // while the product is being indexed schedules one more run, so the latest state always wins.
       await this.queue.addBulk(
         unique.map((id) => ({
           name: 'sync',
           data: { ids: [id] },
-          opts: { deduplication: { id: `product:${id}`, ttl: 1_000 }, delay: 300 },
+          opts: { deduplication: { id: `product:${id}`, keepLastIfActive: true }, delay: 300 },
         })),
       );
     } catch (err) {

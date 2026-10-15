@@ -67,6 +67,34 @@ export const envSchema = z.object({
   STOREFRONT_REVALIDATE_URL: z.string().url().optional(),
   REVALIDATE_SECRET: z.string().min(32).optional(),
 
+  /** Public URLs used for payment redirects and gateway callbacks. */
+  STOREFRONT_URL: z.string().url().default('http://localhost:3100'),
+  API_PUBLIC_URL: z.string().url().default('http://localhost:4100'),
+
+  /** Local payment simulator for development and tests. Refused in production. */
+  PAYMENTS_SIMULATOR: bool.default('false'),
+  MOYASAR_SECRET_KEY: z.string().optional(),
+  /** Shared secret configured on the Moyasar webhook (sent as secret_token). */
+  MOYASAR_WEBHOOK_SECRET: z.string().optional(),
+  MOYASAR_BASE_URL: z.string().url().default('https://api.moyasar.com'),
+  TABBY_SECRET_KEY: z.string().optional(),
+  TABBY_MERCHANT_CODE: z.string().optional(),
+  /** Value of the custom header registered with the Tabby webhook (X-Webhook-Secret). */
+  TABBY_WEBHOOK_SECRET: z.string().optional(),
+  TABBY_BASE_URL: z.string().url().default('https://api.tabby.ai'),
+  TAMARA_API_TOKEN: z.string().optional(),
+  /** Notification key: Tamara signs webhook JWTs with it (HS256). */
+  TAMARA_NOTIFICATION_TOKEN: z.string().optional(),
+  TAMARA_BASE_URL: z.string().url().default('https://api-sandbox.tamara.co'),
+
+  /** ZATCA e-invoicing. off: sign and store only; sandbox/simulation/production: also report. */
+  ZATCA_MODE: z.enum(['off', 'sandbox', 'simulation', 'production']).default('off'),
+  /** secp256k1 private key (PEM, base64-encoded). A local development key is generated when absent. */
+  ZATCA_PRIVATE_KEY: z.string().optional(),
+  /** CSID certificate: binarySecurityToken returned by ZATCA (base64). */
+  ZATCA_CSID_TOKEN: z.string().optional(),
+  ZATCA_CSID_SECRET: z.string().optional(),
+
   SMS_PROVIDER: z.enum(['console', 'unifonic']).default('console'),
   UNIFONIC_APP_SID: z.string().optional(),
   UNIFONIC_SENDER_ID: z.string().optional(),
@@ -85,9 +113,19 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   if (env.NODE_ENV === 'production') {
     if (env.SMS_PROVIDER === 'console') throw new Error('SMS_PROVIDER=console is not allowed in production');
     if (env.SWAGGER_ENABLED) throw new Error('Disable SWAGGER_ENABLED in production');
+    if (env.PAYMENTS_SIMULATOR) throw new Error('PAYMENTS_SIMULATOR is not allowed in production');
+    if (!env.ZATCA_PRIVATE_KEY) throw new Error('ZATCA_PRIVATE_KEY is required in production');
   }
   if (env.SMS_PROVIDER === 'unifonic' && (!env.UNIFONIC_APP_SID || !env.UNIFONIC_SENDER_ID)) {
     throw new Error('UNIFONIC_APP_SID and UNIFONIC_SENDER_ID are required when SMS_PROVIDER=unifonic');
   }
+  if (env.ZATCA_MODE !== 'off' && (!env.ZATCA_PRIVATE_KEY || !env.ZATCA_CSID_TOKEN || !env.ZATCA_CSID_SECRET)) {
+    throw new Error('ZATCA_PRIVATE_KEY, ZATCA_CSID_TOKEN and ZATCA_CSID_SECRET are required when ZATCA_MODE is not off');
+  }
+  if (env.MOYASAR_SECRET_KEY && !env.MOYASAR_WEBHOOK_SECRET) throw new Error('MOYASAR_WEBHOOK_SECRET is required with MOYASAR_SECRET_KEY');
+  if (env.TABBY_SECRET_KEY && (!env.TABBY_MERCHANT_CODE || !env.TABBY_WEBHOOK_SECRET)) {
+    throw new Error('TABBY_MERCHANT_CODE and TABBY_WEBHOOK_SECRET are required with TABBY_SECRET_KEY');
+  }
+  if (env.TAMARA_API_TOKEN && !env.TAMARA_NOTIFICATION_TOKEN) throw new Error('TAMARA_NOTIFICATION_TOKEN is required with TAMARA_API_TOKEN');
   return env;
 }

@@ -13,12 +13,18 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { CheckoutModule } from './modules/checkout/checkout.module';
 import { ContentModule, RevalidationModule } from './modules/content/content.module';
 import { ShopModule } from './modules/shop/shop.module';
+import { InvoicingModule } from './modules/invoicing/invoicing.module';
 import { MediaModule } from './modules/media/media.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { PromotionsModule } from './modules/promotions/promotions.module';
 import { SearchModule } from './modules/search/search.module';
 import { StorageModule } from './modules/storage/storage.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { ShippingModule } from './modules/shipping/shipping.module';
 import { UsersModule } from './modules/users/users.module';
 
 @Module({
@@ -64,6 +70,12 @@ import { UsersModule } from './modules/users/users.module';
     CartModule,
     ShopModule,
     ContentModule,
+    ShippingModule,
+    PromotionsModule,
+    PaymentsModule,
+    InvoicingModule,
+    OrdersModule,
+    CheckoutModule,
   ],
   providers: [
     // Order matters: throttle first, then authenticate (AuthModule), then authorise.

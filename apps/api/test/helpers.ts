@@ -1,4 +1,6 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import type { INestApplication } from '@nestjs/common';
+import type { Queue } from 'bullmq';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import Redis from 'ioredis';
@@ -9,6 +11,7 @@ import { seedGeo, seedLog, seedOwner, seedRbac } from '../prisma/seed-lib';
 seedLog.info = () => undefined;
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/bootstrap';
+import { QUEUES } from '../src/core/queue/queue.module';
 import { SMS_PROVIDER, type SmsMessage, type SmsProvider } from '../src/modules/sms/sms.port';
 
 export const OWNER = { email: 'owner@test.sa', password: 'Owner-Password-123!' };
@@ -62,6 +65,13 @@ export async function resetState(ctx: TestContext): Promise<void> {
   await ctx.prisma.$executeRawUnsafe(
     `TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(', ')} RESTART IDENTITY CASCADE`,
   );
+  // Let in-flight background jobs finish first, or the flush pulls their keys from under them.
+  const queues = Object.values(QUEUES).map((name) => ctx.app.get<Queue>(getQueueToken(name)));
+  for (let i = 0; i < 50; i++) {
+    const counts = await Promise.all(queues.map((q) => q.getJobCounts('active', 'waiting', 'delayed', 'prioritized')));
+    if (counts.every((c) => Object.values(c).every((n) => n === 0))) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
   await ctx.redis.flushdb();
   ctx.sms.sent.length = 0;
   await seedRbac(ctx.prisma);

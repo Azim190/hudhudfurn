@@ -98,6 +98,32 @@ Admin (permission in brackets):
 
 The storefront BFF adds `POST /bff/revalidate` (Bearer `REVALIDATE_SECRET`, tags `catalog`, `content`, `store-info`), which the API calls after catalog and content writes.
 
+## Checkout, orders and invoicing: as implemented in Phase 4
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | /checkout/pickup-locations | Public | Branches flagged as pickup points, with ready time |
+| POST | /checkout/quote | Guest (`X-Cart-Token`) or customer | `fulfillment` (DELIVERY/PICKUP), `addressId` or `address` (or just `cityCode` while typing), `pickupLocationId?`, `shippingRateId?`, `couponCode?`, `paymentMethod?`. Returns shipping options by zone, payment methods with availability reasons, applied promotions, coupon status, totals with VAT, `blockers` and `canPlace` |
+| POST | /checkout/orders | Same, **`Idempotency-Key` required** | Quote fields plus `paymentMethod`, `contact` (guests), `customerNote?`, `locale?`, `expectedTotal?` (409 if the total changed). Reserves stock, redeems promotions, converts the cart. Returns `order`, guest `accessToken` and `payment.redirectUrl` (null for COD) |
+| GET | /orders/:id | Owner, or guest `X-Order-Token` | Order view: items, totals, address, timeline, invoices, payment state, `canRetryPayment`, `canCancel` |
+| POST | /orders/:id/verify | Same | Re-checks the payment with the gateway (return page) and returns the order |
+| POST | /orders/:id/pay | Same | New hosted-payment session for an unpaid order before it expires |
+| POST | /orders/:id/cancel | Same | Before production/dispatch only; releases or restocks, refunds, issues a credit note |
+| GET | /orders/:id/invoices/:invoiceId | Same | Printable invoice / credit note data, including the ZATCA QR payload |
+| GET | /me/orders | Customer | Paginated order history |
+| POST | /payments/webhooks/{moyasar,tabby,tamara} | Gateway (authenticated per provider) | Deduplicated by event id; always re-verifies with the gateway |
+| GET, POST | /payments/simulator/:ref | Development only | Hosted page of the local payment simulator |
+| GET | /admin/orders, /admin/orders/:id | orders.read | Filters: `q` (number, phone, name), `status`, `paymentMethod`, `paymentState`, `from`, `to` |
+| POST | /admin/orders/:id/status | orders.update | Lifecycle moves (domain state machine); DELIVERED on COD collects payment and issues the invoice |
+| POST | /admin/orders/:id/cancel | orders.cancel + orders.refund | Cancel, restock, refund through the gateway, credit note |
+| POST | /admin/orders/:id/payment/sync | orders.update | Re-check a payment (late webhook) |
+| GET | /admin/invoices, /admin/invoices/:id, /admin/invoices/:id/xml | invoicing.read | Signed UBL XML download |
+| GET | /admin/invoices/chain/verify | invoicing.read | Re-verifies counters, hash links, document hashes and signatures |
+| CRUD | /admin/shipping/zones, /admin/shipping/zones/:id/rates, /admin/shipping/rates/:id | settings.read / settings.write | City codes per zone (`*` = rest of the kingdom), weight bands, free-above thresholds, ETAs |
+| CRUD | /admin/promotions, /admin/promotions/:id/coupons, /admin/promotions/coupons/:id | marketing.read / marketing.write | PERCENT, FIXED, FREE_SHIPPING, BXGY, BUNDLE; dates, usage and per-customer limits |
+
+The storefront BFF adds `POST /bff/checkout/quote`, `POST /bff/checkout/orders` (keeps the guest order token in the httpOnly `hd_orders` cookie and clears the guest cart), `POST /bff/orders/:id/{verify,pay,cancel}`, `GET /bff/geo/cities/:id/districts` and `GET /bff/me/addresses`. The admin file proxy adds `GET /bff/files/invoices/:id/xml`.
+
 ## Configurator
 | Method | Path | Auth | Purpose |
 |---|---|---|---|

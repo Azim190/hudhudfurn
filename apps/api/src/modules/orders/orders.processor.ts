@@ -1,0 +1,32 @@
+import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import type { Job, Queue } from 'bullmq';
+import { QUEUES } from '../../core/queue/queue.module';
+import { OrderPaymentsService } from './order-payments.service';
+import { OrdersService } from './orders.service';
+
+/** Every minute: cancel prepaid orders whose payment window has passed and release their stock. */
+@Processor(QUEUES.orders, { concurrency: 1 })
+export class OrdersProcessor extends WorkerHost implements OnApplicationBootstrap {
+  private readonly logger = new Logger(OrdersProcessor.name);
+
+  constructor(
+    private readonly orders: OrdersService,
+    private readonly payments: OrderPaymentsService,
+    @InjectQueue(QUEUES.orders) private readonly queue: Queue,
+  ) {
+    super();
+  }
+
+  async onApplicationBootstrap() {
+    // Tests drive expiry directly instead of on a timer.
+    if (process.env.NODE_ENV === 'test') return;
+    await this.queue.upsertJobScheduler('expire-unpaid', { every: 60_000 }, { name: 'expire-unpaid', opts: { attempts: 1, removeOnComplete: 100, removeOnFail: 100 } });
+  }
+
+  async process(job: Job): Promise<void> {
+    if (job.name !== 'expire-unpaid') return;
+    const count = await this.orders.expireUnpaid((orderId) => this.payments.syncOrder(orderId));
+    if (count) this.logger.log(`Expired ${count} unpaid order(s)`);
+  }
+}

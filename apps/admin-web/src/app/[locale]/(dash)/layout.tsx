@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const NAV = [
   { href: '/', key: 'admin.dashboard', permission: 'dashboard.view' },
+  { href: '/orders', key: 'admin.orders', permission: 'orders.read' },
   { href: '/catalog/products', key: 'catalog.products', permission: 'catalog.product.read' },
   { href: '/catalog/categories', key: 'catalog.categories', permission: 'catalog.category.read' },
   { href: '/catalog/attributes', key: 'catalog.attributes', permission: 'catalog.attribute.read' },

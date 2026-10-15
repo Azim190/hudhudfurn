@@ -43,6 +43,10 @@ pnpm dev
 
 In development, OTP codes appear in the API log as `[dev SMS] …` (`SMS_PROVIDER=console`). The API refuses to start in production with that provider.
 
+**Checkout without gateway credentials:** set `PAYMENTS_SIMULATOR=true`. Card, Tabby and Tamara payments then open a local hosted page (Pay / Decline / Cancel) with the same redirect, verification, capture and refund flow as the real gateways. Real providers are used whenever their keys are set (`MOYASAR_*`, `TABBY_*`, `TAMARA_*`). Sample coupons: `WELCOME10` (first order), `SAVE50` (orders over SAR 300) and `FREESHIP`.
+
+Tax invoices are hashed, chained, signed and given a ZATCA QR code locally, using a generated development key. Reporting to ZATCA is enabled with `ZATCA_MODE` and the CSID credentials; see [ADR-0004](docs/adr/0004-checkout-payments-e-invoicing.md) for onboarding.
+
 Each web app reads `API_INTERNAL_URL` (default `http://localhost:4100/api/v1`) from `.env.local`.
 
 ## Tests
@@ -62,8 +66,8 @@ node scripts/check-logical-css.mjs apps/storefront-web/src   # bans physical lef
 | 1 | Foundation: monorepo, OTP auth, staff 2FA, RBAC, audit, i18n/RTL, design system | ✅ |
 | 2 | Catalog: categories, products, variants, attributes, media, search, inventory, import/export | ✅ |
 | 3 | Storefront browsing, product pages, cart, wishlist, compare, banners | ✅ |
-| 4 | Checkout, payments, VAT, shipping, ZATCA invoices | ⏳ next |
-| 5 | Made-to-measure configurators | |
+| 4 | Checkout, payments, VAT, shipping, ZATCA invoices | ✅ |
+| 5 | Made-to-measure configurators | ⏳ next |
 | 6 | Measurement/installation services, technician flow, quotations | |
 | 7 | Admin: orders, inventory, workshop, reports, marketing, settings | |
 | 8 | Notifications and carrier integrations | |

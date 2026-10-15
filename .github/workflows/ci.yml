@@ -99,6 +99,9 @@ jobs:
       TRUST_PROXY: 'true'
       API_INTERNAL_URL: http://localhost:4100/api/v1
       STOREFRONT_URL: http://localhost:3100
+      API_PUBLIC_URL: http://localhost:4100
+      # Checkout E2E pays on the local simulator; real gateways are never called from CI.
+      PAYMENTS_SIMULATOR: 'true'
       STOREFRONT_REVALIDATE_URL: http://localhost:3100/bff/revalidate
       REVALIDATE_SECRET: ci-revalidate-secret-ci-revalidate-secret
       S3_BUCKET: hudhud-media

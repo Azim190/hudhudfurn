@@ -16,6 +16,7 @@
     "@hudhud/web-core": "workspace:*",
     "next": "15.5.27",
     "next-intl": "4.14.9",
+    "qrcode": "1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "0.0.1"
@@ -24,6 +25,7 @@
     "@hudhud/config": "workspace:*",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.5",
+    "@types/qrcode": "1.5.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "tailwindcss": "4.3.3",

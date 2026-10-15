@@ -30,3 +30,10 @@ process.env.S3_SECRET_KEY ??= 'hudhud-dev-secret';
 process.env.MEDIA_PUBLIC_BASE_URL = `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET}`;
 process.env.MEILI_HOST ??= 'http://localhost:7700';
 process.env.MEILI_API_KEY ??= 'dev_master_key_change_me_please';
+
+// Payments run through the local simulator; tests never reach real gateways or ZATCA.
+process.env.PAYMENTS_SIMULATOR = 'true';
+process.env.ZATCA_MODE = 'off';
+for (const key of ['MOYASAR_SECRET_KEY', 'TABBY_SECRET_KEY', 'TAMARA_API_TOKEN', 'ZATCA_PRIVATE_KEY', 'ZATCA_CSID_TOKEN', 'ZATCA_CSID_SECRET']) delete process.env[key];
+process.env.API_PUBLIC_URL ??= 'http://localhost:4100';
+process.env.STOREFRONT_URL ??= 'http://localhost:3100';

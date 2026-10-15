@@ -64,6 +64,7 @@ model User {
   wishlist     WishlistItem[]
   stockAlerts  BackInStockSubscription[]
   reviews      Review[]
+  orders       Order[]
 
   @@index([kind, status])
   @@map("users")
@@ -553,6 +554,7 @@ model ProductVariant {
   movements      StockMovement[]
   cartItems      CartItem[]
   stockAlerts    BackInStockSubscription[]
+  orderItems     OrderItem[]
 
   @@unique([productId, optionKey])
   @@map("product_variants")
@@ -692,17 +694,19 @@ enum StockReason {
 }
 
 model Location {
-  id            String          @id @default(uuid()) @db.Uuid
-  code          String          @unique
+  id            String             @id @default(uuid()) @db.Uuid
+  code          String             @unique
   type          LocationType
-  nameAr        String          @map("name_ar")
-  nameEn        String?         @map("name_en")
-  cityId        String?         @map("city_id") @db.Uuid
-  isPickupPoint Boolean         @default(false) @map("is_pickup_point")
-  isActive      Boolean         @default(true) @map("is_active")
-  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  nameAr        String             @map("name_ar")
+  nameEn        String?            @map("name_en")
+  cityId        String?            @map("city_id") @db.Uuid
+  isPickupPoint Boolean            @default(false) @map("is_pickup_point")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   stock         StockLevel[]
   movements     StockMovement[]
+  reservations  StockReservation[]
+  pickupOrders  Order[]
 
   @@map("locations")
 }
@@ -904,4 +908,497 @@ model Review {
 
   @@index([productId, status, createdAt])
   @@map("reviews")
+}
+
+// ─────────────────────────────── Shipping ───────────────────────────────
+
+/// A delivery zone groups cities. The zone listing city code "*" covers every other city.
+model ShippingZone {
+  id        String             @id @default(uuid()) @db.Uuid
+  code      String             @unique
+  nameAr    String             @map("name_ar")
+  nameEn    String             @map("name_en")
+  isActive  Boolean            @default(true) @map("is_active")
+  sortOrder Int                @default(0) @map("sort_order")
+  createdAt DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cities    ShippingZoneCity[]
+  rates     ShippingRate[]
+
+  @@map("shipping_zones")
+}
+
+/// A city belongs to at most one zone.
+model ShippingZoneCity {
+  zoneId   String       @map("zone_id") @db.Uuid
+  cityCode String       @unique @map("city_code")
+  zone     ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@id([zoneId, cityCode])
+  @@map("shipping_zone_cities")
+}
+
+model ShippingRate {
+  id         String       @id @default(uuid()) @db.Uuid
+  zoneId     String       @map("zone_id") @db.Uuid
+  /// Carrier adapter key: OWN_FLEET, SMSA, ARAMEX, SPL.
+  carrier    String
+  /// STANDARD, EXPRESS, SAME_DAY.
+  method     String
+  nameAr     String       @map("name_ar")
+  nameEn     String       @map("name_en")
+  minWeightG Int          @default(0) @map("min_weight_g")
+  maxWeightG Int?         @map("max_weight_g")
+  /// Halalas, in the store's price basis (VAT-inclusive by default).
+  price      Int
+  freeAbove  Int?         @map("free_above")
+  etaMinDays Int          @map("eta_min_days")
+  etaMaxDays Int          @map("eta_max_days")
+  isActive   Boolean      @default(true) @map("is_active")
+  sortOrder  Int          @default(0) @map("sort_order")
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  zone       ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@index([zoneId, isActive])
+  @@map("shipping_rates")
+}
+
+// ─────────────────────────────── Promotions ───────────────────────────────
+
+enum PromotionType {
+  PERCENT
+  FIXED
+  FREE_SHIPPING
+  BXGY
+  BUNDLE
+}
+
+model Promotion {
+  id               String                @id @default(uuid()) @db.Uuid
+  nameAr           String                @map("name_ar")
+  nameEn           String                @map("name_en")
+  type             PromotionType
+  /// Applied without a code; otherwise redeemed through one of its coupons.
+  automatic        Boolean               @default(false)
+  priority         Int                   @default(0)
+  stackable        Boolean               @default(true)
+  /// Domain PromotionConditions: { minSubtotal, productIds, categoryIds, verticals, firstOrderOnly }.
+  conditions       Json                  @default("{}")
+  /// Domain PromotionBenefit: { percent, maxDiscount, amount, buyQuantity, getQuantity, getPercent, bundleQuantity, bundlePrice }.
+  benefit          Json                  @default("{}")
+  startsAt         DateTime?             @map("starts_at") @db.Timestamptz(3)
+  endsAt           DateTime?             @map("ends_at") @db.Timestamptz(3)
+  usageLimit       Int?                  @map("usage_limit")
+  perCustomerLimit Int?                  @map("per_customer_limit")
+  usageCount       Int                   @default(0) @map("usage_count")
+  isActive         Boolean               @default(true) @map("is_active")
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  coupons          Coupon[]
+  redemptions      PromotionRedemption[]
+
+  @@index([isActive, automatic])
+  @@map("promotions")
+}
+
+model Coupon {
+  id          String                @id @default(uuid()) @db.Uuid
+  promotionId String                @map("promotion_id") @db.Uuid
+  /// Stored upper-case; matched case-insensitively.
+  code        String                @unique
+  usageLimit  Int?                  @map("usage_limit")
+  usageCount  Int                   @default(0) @map("usage_count")
+  isActive    Boolean               @default(true) @map("is_active")
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  promotion   Promotion             @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  redemptions PromotionRedemption[]
+
+  @@map("coupons")
+}
+
+/// One row per promotion used by an order; released when an unpaid order expires or is cancelled.
+model PromotionRedemption {
+  id          String    @id @default(uuid()) @db.Uuid
+  promotionId String    @map("promotion_id") @db.Uuid
+  couponId    String?   @map("coupon_id") @db.Uuid
+  orderId     String    @map("order_id") @db.Uuid
+  userId      String?   @map("user_id") @db.Uuid
+  /// Guests are limited per phone number.
+  phoneE164   String    @map("phone_e164")
+  discount    Int
+  released    Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Restrict)
+  coupon      Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, orderId])
+  @@index([promotionId, phoneE164])
+  @@map("promotion_redemptions")
+}
+
+// ─────────────────────────────── Orders ───────────────────────────────
+
+enum OrderStatus {
+  NEW
+  PAID
+  CONFIRMED
+  IN_PRODUCTION
+  READY
+  SHIPPED
+  INSTALLATION_SCHEDULED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum FulfillmentType {
+  DELIVERY
+  PICKUP
+}
+
+enum PaymentMethod {
+  /// mada, Visa, Mastercard and Apple Pay on the gateway's hosted page.
+  CARD
+  TABBY
+  TAMARA
+  COD
+}
+
+enum PaymentProvider {
+  SIMULATOR
+  MOYASAR
+  TABBY
+  TAMARA
+  COD
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum OrderPaymentState {
+  UNPAID
+  PAID
+  /// Cash on delivery: collected by the courier.
+  PAY_ON_DELIVERY
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+/// Orders keep full snapshots (prices, names, address) so later catalog edits never change them.
+model Order {
+  id               String                @id @default(uuid()) @db.Uuid
+  /// HD-2026-000123
+  number           String                @unique
+  userId           String?               @map("user_id") @db.Uuid
+  locale           Locale                @default(ar)
+  contactName      String                @map("contact_name")
+  contactPhoneE164 String                @map("contact_phone_e164")
+  contactEmail     String?               @map("contact_email")
+  status           OrderStatus           @default(NEW)
+  paymentMethod    PaymentMethod         @map("payment_method")
+  paymentState     OrderPaymentState     @default(UNPAID) @map("payment_state")
+  fulfillment      FulfillmentType
+  /// { recipientName, phoneE164, cityCode, cityNameAr, cityNameEn, district, street, buildingNo, additionalNo, postalCode, shortAddress }
+  shippingAddress  Json?                 @map("shipping_address")
+  cityCode         String?               @map("city_code")
+  shippingRateId   String?               @map("shipping_rate_id") @db.Uuid
+  shippingCarrier  String?               @map("shipping_carrier")
+  shippingMethod   String?               @map("shipping_method")
+  shippingNameAr   String?               @map("shipping_name_ar")
+  shippingNameEn   String?               @map("shipping_name_en")
+  pickupLocationId String?               @map("pickup_location_id") @db.Uuid
+  etaMinDays       Int?                  @map("eta_min_days")
+  etaMaxDays       Int?                  @map("eta_max_days")
+  currency         String                @default("SAR")
+  vatRateBp        Int                   @map("vat_rate_bp")
+  pricesIncludeVat Boolean               @map("prices_include_vat")
+  /// All amounts in halalas.
+  subtotal         Int
+  discount         Int                   @default(0)
+  giftWrapTotal    Int                   @default(0) @map("gift_wrap_total")
+  shippingTotal    Int                   @default(0) @map("shipping_total")
+  codFee           Int                   @default(0) @map("cod_fee")
+  net              Int
+  vat              Int
+  total            Int
+  refundedTotal    Int                   @default(0) @map("refunded_total")
+  couponCode       String?               @map("coupon_code")
+  /// { promotions: [{ id, code, type, nameAr, nameEn, discount }], vatBreakdown, shipping: {net,vat}, codFee: {net,vat} }
+  pricing          Json                  @default("{}")
+  customerNote     String?               @map("customer_note")
+  cartId           String?               @map("cart_id") @db.Uuid
+  /// Unpaid prepaid orders are cancelled and their stock released after this time.
+  expiresAt        DateTime?             @map("expires_at") @db.Timestamptz(3)
+  placedAt         DateTime              @default(now()) @map("placed_at") @db.Timestamptz(3)
+  paidAt           DateTime?             @map("paid_at") @db.Timestamptz(3)
+  deliveredAt      DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  cancelledAt      DateTime?             @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason     String?               @map("cancel_reason")
+  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  pickupLocation   Location?             @relation(fields: [pickupLocationId], references: [id], onDelete: Restrict)
+  items            OrderItem[]
+  events           OrderStatusEvent[]
+  payments         Payment[]
+  refunds          Refund[]
+  invoices         TaxInvoice[]
+  reservations     StockReservation[]
+  redemptions      PromotionRedemption[]
+
+  @@index([userId, placedAt])
+  @@index([status, placedAt])
+  @@index([contactPhoneE164])
+  @@index([paymentState, expiresAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              String             @id @default(uuid()) @db.Uuid
+  orderId         String             @map("order_id") @db.Uuid
+  variantId       String?            @map("variant_id") @db.Uuid
+  productId       String?            @map("product_id") @db.Uuid
+  sku             String
+  nameAr          String             @map("name_ar")
+  nameEn          String?            @map("name_en")
+  /// [{ attributeKey, nameAr, nameEn, labelAr, labelEn }]
+  options         Json               @default("[]")
+  imageUrl        String?            @map("image_url")
+  pricingMode     PricingMode        @map("pricing_mode")
+  isMadeToMeasure Boolean            @map("is_made_to_measure")
+  isSample        Boolean            @default(false) @map("is_sample")
+  lengthCm        Int?               @map("length_cm")
+  widthMm         Int?               @map("width_mm")
+  heightMm        Int?               @map("height_mm")
+  billedMeasure   Int?               @map("billed_measure")
+  quantity        Int
+  /// Unit price as charged, in the store's price basis.
+  unitPrice       Int                @map("unit_price")
+  discount        Int                @default(0)
+  giftWrap        Boolean            @default(false) @map("gift_wrap")
+  giftWrapTotal   Int                @default(0) @map("gift_wrap_total")
+  giftMessage     String?            @map("gift_message")
+  net             Int
+  vat             Int
+  vatRateBp       Int                @map("vat_rate_bp")
+  total           Int
+  weightGrams     Int                @default(0) @map("weight_grams")
+  sortOrder       Int                @default(0) @map("sort_order")
+  order           Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant         ProductVariant?    @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  reservations    StockReservation[]
+
+  @@index([orderId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+model OrderStatusEvent {
+  id         String       @id @default(uuid()) @db.Uuid
+  orderId    String       @map("order_id") @db.Uuid
+  fromStatus OrderStatus? @map("from_status")
+  toStatus   OrderStatus  @map("to_status")
+  actorId    String?      @map("actor_id") @db.Uuid
+  note       String?
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+  @@map("order_status_events")
+}
+
+enum ReservationStatus {
+  ACTIVE
+  /// Converted into a SALE movement (payment confirmed or COD order confirmed).
+  COMMITTED
+  RELEASED
+}
+
+model StockReservation {
+  id          String            @id @default(uuid()) @db.Uuid
+  orderId     String            @map("order_id") @db.Uuid
+  orderItemId String            @map("order_item_id") @db.Uuid
+  variantId   String            @map("variant_id") @db.Uuid
+  locationId  String            @map("location_id") @db.Uuid
+  quantity    Int
+  status      ReservationStatus @default(ACTIVE)
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem         @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  location    Location          @relation(fields: [locationId], references: [id], onDelete: Restrict)
+
+  @@index([orderId, status])
+  @@map("stock_reservations")
+}
+
+// ─────────────────────────────── Payments ───────────────────────────────
+
+model Payment {
+  id            String          @id @default(uuid()) @db.Uuid
+  orderId       String          @map("order_id") @db.Uuid
+  provider      PaymentProvider
+  method        PaymentMethod
+  status        PaymentStatus   @default(PENDING)
+  amount        Int
+  currency      String          @default("SAR")
+  /// Gateway reference: Moyasar invoice id, Tabby payment id, Tamara order id.
+  providerRef   String?         @map("provider_ref")
+  /// Hosted payment page the customer is sent to.
+  redirectUrl   String?         @map("redirect_url")
+  /// Card scheme and last digits or BNPL plan as reported by the gateway (never full card data).
+  sourceSummary String?         @map("source_summary")
+  failureCode   String?         @map("failure_code")
+  failureReason String?         @map("failure_reason")
+  raw           Json?
+  authorizedAt  DateTime?       @map("authorized_at") @db.Timestamptz(3)
+  capturedAt    DateTime?       @map("captured_at") @db.Timestamptz(3)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order         Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  refunds       Refund[]
+
+  @@unique([provider, providerRef])
+  @@index([orderId])
+  @@map("payments")
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model Refund {
+  id           String       @id @default(uuid()) @db.Uuid
+  orderId      String       @map("order_id") @db.Uuid
+  paymentId    String       @map("payment_id") @db.Uuid
+  amount       Int
+  reason       String
+  status       RefundStatus @default(PENDING)
+  providerRef  String?      @map("provider_ref")
+  creditNoteId String?      @unique @map("credit_note_id") @db.Uuid
+  actorId      String?      @map("actor_id") @db.Uuid
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment      Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  creditNote   TaxInvoice?  @relation(fields: [creditNoteId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("refunds")
+}
+
+/// Gateway webhook deliveries, deduplicated by the gateway's event id.
+model WebhookEvent {
+  id          String          @id @default(uuid()) @db.Uuid
+  provider    PaymentProvider
+  eventId     String          @map("event_id")
+  type        String
+  payload     Json
+  processedAt DateTime?       @map("processed_at") @db.Timestamptz(3)
+  error       String?
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@unique([provider, eventId])
+  @@map("webhook_events")
+}
+
+/// Replays the response of a request repeated with the same Idempotency-Key.
+model IdempotencyKey {
+  scope       String
+  key         String
+  /// sha256 of the request body; reusing a key with a different body is rejected.
+  requestHash String   @map("request_hash")
+  status      Int?
+  response    Json?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(3)
+
+  @@id([scope, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+/// Gap-free yearly sequences for order numbers.
+model DocumentCounter {
+  key   String @id
+  value Int    @default(0)
+
+  @@map("document_counters")
+}
+
+// ─────────────────────────────── Invoicing (ZATCA) ───────────────────────────────
+
+enum InvoiceKind {
+  INVOICE
+  CREDIT_NOTE
+}
+
+enum ZatcaStatus {
+  /// Signed and stored; reporting is off (no production CSID configured).
+  NOT_SUBMITTED
+  PENDING
+  REPORTED
+  REPORTED_WITH_WARNINGS
+  REJECTED
+  FAILED
+}
+
+/// Simplified tax invoices and credit notes, chained per EGS unit: each document stores the hash of the previous one.
+model TaxInvoice {
+  id            String       @id @default(uuid()) @db.Uuid
+  orderId       String       @map("order_id") @db.Uuid
+  kind          InvoiceKind
+  /// INV-2026-000001 / CN-2026-000001
+  number        String       @unique
+  uuid          String       @unique @db.Uuid
+  /// Invoice counter value: strictly increasing, no gaps.
+  icv           Int          @unique
+  previousHash  String       @map("previous_hash")
+  /// Base64 SHA-256 of the canonical invoice XML.
+  hash          String       @unique
+  signature     String
+  xml           String       @db.Text
+  qr            String       @db.Text
+  issuedAt      DateTime     @map("issued_at") @db.Timestamptz(3)
+  net           Int
+  vat           Int
+  total         Int
+  /// Credit notes reference the original invoice.
+  originalId    String?      @map("original_id") @db.Uuid
+  reason        String?
+  /// Seller, buyer and line data as printed.
+  snapshot      Json
+  zatcaStatus   ZatcaStatus  @default(NOT_SUBMITTED) @map("zatca_status")
+  zatcaResponse Json?        @map("zatca_response")
+  zatcaAttempts Int          @default(0) @map("zatca_attempts")
+  reportedAt    DateTime?    @map("reported_at") @db.Timestamptz(3)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  order         Order        @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  original      TaxInvoice?  @relation("CreditNotes", fields: [originalId], references: [id], onDelete: Restrict)
+  creditNotes   TaxInvoice[] @relation("CreditNotes")
+  refund        Refund?
+
+  @@index([orderId])
+  @@index([zatcaStatus])
+  @@map("tax_invoices")
+}
+
+/// Single-row chain head for the e-invoicing unit, locked while a document is issued.
+model InvoiceChain {
+  id       String @id
+  lastIcv  Int    @default(0) @map("last_icv")
+  lastHash String @map("last_hash")
+
+  @@map("invoice_chain")
 }

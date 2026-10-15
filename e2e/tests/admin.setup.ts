@@ -1,7 +1,7 @@
 import { expect, test as setup } from '@playwright/test';
 import { authenticator } from 'otplib';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101';
 export const ADMIN_STATE = join(__dirname, '..', '.auth', 'admin.json');
@@ -28,6 +28,7 @@ setup('staff sign-in', async ({ page }) => {
   let secret: string;
   if (await enrol.isVisible()) {
     secret = (await page.locator('code').first().innerText()).trim();
+    mkdirSync(dirname(SECRET_FILE), { recursive: true });
     writeFileSync(SECRET_FILE, secret);
   } else {
     if (!existsSync(SECRET_FILE)) throw new Error('2FA already enrolled for this account but no local secret; reset the account 2FA');

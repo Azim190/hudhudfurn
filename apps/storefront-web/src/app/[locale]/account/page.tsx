@@ -1,8 +1,8 @@
 import { formatDate, isLocale } from '@hudhud/i18n';
-import { Card } from '@hudhud/ui';
+import { Card, ChevronForward } from '@hudhud/ui';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { redirect } from '@/i18n/navigation';
+import { Link, redirect } from '@/i18n/navigation';
 import { getCurrentUser, getDisplayPrefs } from '@/lib/server';
 import { AccountForm } from './account-form';
 import { LogoutButton } from './logout-button';
@@ -39,7 +39,11 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
         </div>
         <LogoutButton />
       </div>
-      <Card className="mt-8 p-6">
+      <Link href="/account/orders" className="mt-8 flex items-center justify-between rounded-card bg-white p-5 font-medium shadow-card hover:text-brand-700">
+        {t('account.orders')}
+        <ChevronForward />
+      </Link>
+      <Card className="mt-6 p-6">
         <AccountForm user={user!} />
       </Card>
     </div>

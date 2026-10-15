@@ -23,7 +23,7 @@ const ITEM_INCLUDE = {
   },
 } satisfies Prisma.CartItemInclude;
 
-type CartItemFull = Prisma.CartItemGetPayload<{ include: typeof ITEM_INCLUDE }>;
+export type CartItemFull = Prisma.CartItemGetPayload<{ include: typeof ITEM_INCLUDE }>;
 
 export type LineIssue = 'productUnavailable' | 'outOfStock' | 'insufficientStock' | 'configurationRequired' | 'measurementsRequired' | 'sampleUnavailable';
 
@@ -252,6 +252,19 @@ export class CartService {
       giftWrapPrice: modules.giftWrapping ? wrap.priceHalalas : null,
       canCheckout: items.length > 0 && issues.size === 0,
     };
+  }
+
+  /** Cart lines with their availability issues, for checkout. */
+  async loadForCheckout(owner: CartOwner) {
+    const cart = await this.find(owner);
+    if (!cart) return null;
+    const items = await this.prisma.cartItem.findMany({ where: { cartId: cart.id }, include: ITEM_INCLUDE, orderBy: { createdAt: 'asc' } });
+    return { cart, items: items.map((item) => ({ item, issue: this.issueOf(item) })) };
+  }
+
+  /** Card view of a product (name, image) for order snapshots. */
+  card(item: CartItemFull) {
+    return this.presenter.card(item.variant.product);
   }
 
   /** Remove abandoned guest carts (scheduled job in a later phase; callable from ops tooling). */

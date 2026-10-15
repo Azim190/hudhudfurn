@@ -57,3 +57,19 @@ Each item below is a sensible default chosen so work is not blocked. All of them
 38. **Reviews** are listed now. Customers submit them after a delivered order, so submission and moderation arrive with orders.
 39. **Wishlist** is saved on the device for guests and moves into the account at sign-in. Compare holds up to 4 products and recently viewed holds 12, both device-local.
 40. **Caching**: the home and product pages are ISR (5 minutes), and category and search pages render per request from cached API data. Catalog and content writes trigger on-demand revalidation, so edits appear within seconds.
+
+## Added during Phase 4
+41. **Shipping zones** (seeded, editable in the admin API):
+    - Riyadh: own fleet, SAR 25 (free from SAR 300, 1–2 days), or same day SAR 45.
+    - Major cities (Jeddah, Makkah, Madinah, Dammam, Khobar, Dhahran): SMSA SAR 35 (free from SAR 400, 2–3 days), or Aramex express SAR 55.
+    - Rest of the kingdom: SPL SAR 45 (free from SAR 500, 3–5 days).
+    - Items without a weight count as 1 kg; fabric samples as 50 g. Made-to-measure orders add the tailoring time from `shipping.eta`.
+42. **Cash on delivery** (settings `checkout.cod`): SAR 15 fee and orders up to SAR 5,000. Only in cities with `codAllowed`. Not for made-to-measure items (they are produced per order) and not for store pickup.
+43. **Tabby/Tamara** are offered for orders between SAR 100 and SAR 5,000 (settings `payments.bnpl`) and require an email address. They are captured right after the customer approves, so the order is a firm sale.
+44. **Unpaid card/BNPL orders** keep their stock and coupon for 30 minutes (settings `checkout.payment`). The customer can retry payment from the return or order page during that window. After it, the order is cancelled automatically.
+45. **Store pickup** is offered from branches flagged as pickup points. They are ready in 1–3 business days (settings `checkout.pickup`), plus tailoring time.
+46. **Guest orders** are accessed with an order token kept in an httpOnly cookie on the device (last 10 orders). Guests are recognised by phone number for first-order coupons and per-customer limits.
+47. **Customers may cancel** an order themselves while it is awaiting payment, paid or confirmed, i.e. before tailoring or dispatch. Paid amounts are refunded in full to the original method and a credit note is issued.
+48. **Sample seller data**: legal name "مؤسسة هدهد للمفروشات", CR 1010123456, VAT 300000000000003, King Fahd Road, Al Olaya, Riyadh. Replace these in settings `store.legal` before going live. Invoices are refused if the VAT number is not a valid Saudi format.
+49. **Invoice numbering**: `INV-YYYY-NNNNNN` and `CN-YYYY-NNNNNN` reset yearly (Riyadh time); the ZATCA ICV never resets. Simplified invoices carry no buyer details (B2C). Standard B2B tax invoices (clearance) are out of scope until requested.
+50. **VAT on inclusive prices** is extracted per line, half-up, so the customer pays exactly the displayed price. ZATCA's rate checks may report ±0.01 SAR rounding warnings on some lines; warnings do not block reporting.

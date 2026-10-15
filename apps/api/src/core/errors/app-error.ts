@@ -32,7 +32,20 @@ export type ErrorCode =
   | 'productUnavailable'
   | 'sampleUnavailable'
   | 'cartLimit'
-  | 'alreadyInStock';
+  | 'alreadyInStock'
+  | 'cartEmpty'
+  | 'cartNotReady'
+  | 'couponInvalid'
+  | 'couponNotApplicable'
+  | 'shippingUnavailable'
+  | 'pickupUnavailable'
+  | 'paymentMethodUnavailable'
+  | 'idempotencyMismatch'
+  | 'requestInProgress'
+  | 'orderNotPayable'
+  | 'orderTransitionInvalid'
+  | 'refundFailed'
+  | 'paymentProviderError';
 
 export class AppError extends Error {
   constructor(

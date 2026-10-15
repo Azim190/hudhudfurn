@@ -9,13 +9,34 @@ import { PrismaService } from '../../core/prisma/prisma.service';
  */
 export const SETTING_DEFAULTS = {
   'store.name': { ar: 'هدهد', en: 'HUDHUD' },
-  'store.legal': { commercialRegistration: '', vatNumber: '', legalNameAr: '', legalNameEn: '' },
+  'store.legal': {
+    commercialRegistration: '',
+    vatNumber: '',
+    legalNameAr: '',
+    legalNameEn: '',
+    /** National address of the seller, printed on tax invoices. */
+    street: '',
+    buildingNumber: '',
+    district: '',
+    city: '',
+    postalCode: '',
+  },
   'store.contact': { phone: '', whatsapp: '', email: '' },
   'tax.vat': { rateBp: SA_STANDARD_VAT_BP, pricesIncludeVat: true },
   'cart.giftWrap': { priceHalalas: 1500 },
   'cart.limits': { maxLines: 50, maxQuantityPerLine: 20 },
   /** Delivery estimate (days) by region until shipping zones arrive; made-to-measure adds production time. */
   'shipping.eta': { riyadhMin: 1, riyadhMax: 2, mainMin: 2, mainMax: 3, otherMin: 3, otherMax: 5, productionMin: 7, productionMax: 12 },
+  /** Cash on delivery: flat fee, maximum order total, and whether made-to-measure items may use it. */
+  'checkout.cod': { enabled: true, feeHalalas: 1500, maxTotalHalalas: 500000, allowMadeToMeasure: false },
+  /** Store pickup from branches flagged as pickup points; ready time covers the transfer from the warehouse. */
+  'checkout.pickup': { enabled: true, readyMinDays: 1, readyMaxDays: 3 },
+  /** Unpaid card/BNPL orders hold their stock this long before they are cancelled. */
+  'checkout.payment': { unpaidTtlMinutes: 30 },
+  /** Payment methods offered at checkout (each also needs its gateway configured). */
+  'payments.methods': { card: true, tabby: true, tamara: true, cod: true },
+  /** Buy-now-pay-later order limits (halalas). */
+  'payments.bnpl': { minTotalHalalas: 10000, maxTotalHalalas: 500000 },
   'modules.enabled': {
     loyalty: false,
     fabricSamples: true,

@@ -31,7 +31,19 @@ export const cartCookieOptions = (maxAge = CART_TTL_SECONDS) => ({
  * Cart calls work for guests and customers: attach the session when there is one (refreshing it
  * if needed), always attach the guest token, and persist a newly issued guest token.
  */
-export async function proxyCart(req: NextRequest, path: string, init: Omit<ApiRequest, 'token' | 'headers'> = {}): Promise<NextResponse> {
+export function proxyCart(req: NextRequest, path: string, init: Omit<ApiRequest, 'token' | 'headers'> = {}): Promise<NextResponse> {
+  return proxyShopper(req, path, init);
+}
+
+export interface ShopperOptions {
+  /** Extra headers for the API (Idempotency-Key, X-Order-Token). */
+  headers?: Record<string, string>;
+  /** Adjust the success response (set cookies, strip server-only fields). */
+  onSuccess?: (body: Record<string, unknown>, res: NextResponse) => Record<string, unknown> | void;
+}
+
+/** Same as proxyCart, for any shopper call that works with or without an account (checkout, orders). */
+export async function proxyShopper(req: NextRequest, path: string, init: Omit<ApiRequest, 'token' | 'headers'> = {}, opts: ShopperOptions = {}): Promise<NextResponse> {
   if (init.method && init.method !== 'GET' && !isSameOrigin(req)) return forbiddenOrigin();
   let access = req.cookies.get(STOREFRONT_COOKIES.access)?.value ?? null;
   let rotated: IssuedTokens | null = null;
@@ -51,16 +63,24 @@ export async function proxyCart(req: NextRequest, path: string, init: Omit<ApiRe
       token: access,
       locale: localeOf(req),
       clientIp: clientIpOf(req),
-      headers: guestToken ? { 'X-Cart-Token': guestToken } : {},
+      headers: { ...(guestToken ? { 'X-Cart-Token': guestToken } : {}), ...opts.headers },
     });
     const { cartToken, ...body } = (data ?? {}) as { cartToken?: string };
     res = NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+    if (opts.onSuccess) {
+      const replaced = opts.onSuccess(body, res);
+      if (replaced) {
+        const next = NextResponse.json(replaced, { status, headers: { 'Cache-Control': 'no-store' } });
+        for (const c of res.cookies.getAll()) next.cookies.set(c);
+        res = next;
+      }
+    }
     if (typeof cartToken === 'string') res.cookies.set(CART_COOKIE, cartToken, cartCookieOptions());
   } catch (err) {
     res = errorResponse(err);
     // An expired session must not block guest shopping: retry anonymously once.
     if (err instanceof ApiError && err.status === 401 && access) {
-      return proxyCart(withoutSession(req), path, init);
+      return proxyShopper(withoutSession(req), path, init, opts);
     }
   }
   if (rotated) writeSession(res.cookies, STOREFRONT_COOKIES, rotated);

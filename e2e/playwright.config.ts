@@ -17,13 +17,13 @@ export default defineConfig({
   },
   projects: [
     // Public storefront and admin login screens, desktop and mobile.
-    { name: 'desktop', testIgnore: /admin-catalog|.setup.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
-    { name: 'mobile', testIgnore: /admin-catalog|.setup.ts|storefront-shop/, use: { ...devices['Pixel 7'] } },
+    { name: 'desktop', testIgnore: /admin-(catalog|orders)|.setup.ts/, use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 } } },
+    { name: 'mobile', testIgnore: /admin-(catalog|orders)|.setup.ts|storefront-shop|storefront-checkout/, use: { ...devices['Pixel 7'] } },
     // Signed-in admin flows: log in once through the UI, then reuse the session.
     { name: 'admin-setup', testMatch: /admin.setup.ts/ },
     {
       name: 'admin',
-      testMatch: /admin-catalog.spec.ts/,
+      testMatch: /admin-(catalog|orders).spec.ts/,
       dependencies: ['admin-setup'],
       use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, storageState: join(__dirname, '.auth', 'admin.json') },
     },

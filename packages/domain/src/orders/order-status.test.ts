@@ -16,6 +16,12 @@ describe('order state machine', () => {
     }
   });
 
+  it('lets cash-on-delivery orders be confirmed without payment', () => {
+    expect(canTransition('NEW', 'CONFIRMED')).toBe(true);
+    expect(canTransition('CONFIRMED', 'READY')).toBe(true);
+    expect(canTransition('CONFIRMED', 'PAID')).toBe(false);
+  });
+
   it('lets stock orders skip production', () => {
     expect(canTransition('PAID', 'READY')).toBe(true);
     expect(canTransition('READY', 'SHIPPED')).toBe(true);

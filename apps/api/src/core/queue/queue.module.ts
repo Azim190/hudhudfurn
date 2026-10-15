@@ -6,6 +6,8 @@ export const QUEUES = {
   media: 'media',
   search: 'search',
   catalogImport: 'catalog-import',
+  orders: 'orders',
+  invoicing: 'invoicing',
 } as const;
 
 /** Redis-backed job queues (BullMQ). Workers run in-process when WORKERS_ENABLED=true. */
@@ -34,7 +36,7 @@ export const QUEUES = {
         };
       },
     }),
-    BullModule.registerQueue({ name: QUEUES.media }, { name: QUEUES.search }, { name: QUEUES.catalogImport }),
+    BullModule.registerQueue({ name: QUEUES.media }, { name: QUEUES.search }, { name: QUEUES.catalogImport }, { name: QUEUES.orders }, { name: QUEUES.invoicing }),
   ],
   exports: [BullModule],
 })

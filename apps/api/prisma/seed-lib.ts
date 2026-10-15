@@ -1,5 +1,6 @@
 /**
- * Idempotent seed steps: permissions, default roles, the first owner account and Saudi cities.
+ * Idempotent seed steps: permissions, default roles, the first owner account, Saudi cities and
+ * commerce reference data (shipping, coupons, store legal details).
  * Used by `prisma db seed` and by the integration tests. Safe to run repeatedly.
  */
 import { DEFAULT_ROLES, expandGrants, PERMISSIONS } from '@hudhud/domain';
@@ -75,3 +76,106 @@ export async function seedGeo(prisma: PrismaClient) {
   seedLog.info(`✓ ${SAUDI_CITIES.length} cities`);
 }
 
+
+const ZONES = [
+  {
+    code: 'RIYADH',
+    nameAr: 'الرياض',
+    nameEn: 'Riyadh',
+    cities: ['RUH'],
+    rates: [
+      { carrier: 'OWN_FLEET', method: 'STANDARD', nameAr: 'توصيل هدهد', nameEn: 'HUDHUD delivery', price: 2500, freeAbove: 30000, etaMinDays: 1, etaMaxDays: 2 },
+      { carrier: 'OWN_FLEET', method: 'SAME_DAY', nameAr: 'توصيل في نفس اليوم', nameEn: 'Same-day delivery', price: 4500, freeAbove: null, etaMinDays: 0, etaMaxDays: 1 },
+    ],
+  },
+  {
+    code: 'MAIN',
+    nameAr: 'المدن الرئيسية',
+    nameEn: 'Major cities',
+    cities: ['JED', 'MKK', 'MED', 'DMM', 'KHB', 'DHA'],
+    rates: [
+      { carrier: 'SMSA', method: 'STANDARD', nameAr: 'سمسا - عادي', nameEn: 'SMSA standard', price: 3500, freeAbove: 40000, etaMinDays: 2, etaMaxDays: 3 },
+      { carrier: 'ARAMEX', method: 'EXPRESS', nameAr: 'أرامكس - سريع', nameEn: 'Aramex express', price: 5500, freeAbove: null, etaMinDays: 1, etaMaxDays: 2 },
+    ],
+  },
+  {
+    code: 'KINGDOM',
+    nameAr: 'باقي مناطق المملكة',
+    nameEn: 'Rest of the Kingdom',
+    cities: ['*'],
+    rates: [{ carrier: 'SPL', method: 'STANDARD', nameAr: 'البريد السعودي (سبل)', nameEn: 'Saudi Post (SPL)', price: 4500, freeAbove: 50000, etaMinDays: 3, etaMaxDays: 5 }],
+  },
+] as const;
+
+const COUPONS = [
+  { code: 'WELCOME10', nameAr: 'خصم الطلب الأول 10٪', nameEn: '10% off your first order', type: 'PERCENT', conditions: { firstOrderOnly: true }, benefit: { percent: 10, maxDiscount: 10000 }, perCustomerLimit: 1 },
+  { code: 'SAVE50', nameAr: 'خصم 50 ريال للطلبات فوق 300 ريال', nameEn: 'SAR 50 off orders over SAR 300', type: 'FIXED', conditions: { minSubtotal: 30000 }, benefit: { amount: 5000 }, perCustomerLimit: null },
+  { code: 'FREESHIP', nameAr: 'توصيل مجاني', nameEn: 'Free delivery', type: 'FREE_SHIPPING', conditions: {}, benefit: {}, perCustomerLimit: null },
+] as const;
+
+/**
+ * Commerce reference data: shipping zones and rates, sample coupons, a pickup showroom and the
+ * seller's legal details (sample VAT number 300000000000003 — replace before going live).
+ * Existing rows are left untouched so admin edits survive re-seeding.
+ */
+export async function seedCommerce(prisma: PrismaClient) {
+  for (const [i, z] of ZONES.entries()) {
+    if (await prisma.shippingZone.findUnique({ where: { code: z.code } })) continue;
+    await prisma.shippingZoneCity.deleteMany({ where: { cityCode: { in: [...z.cities] } } });
+    await prisma.shippingZone.create({
+      data: {
+        code: z.code,
+        nameAr: z.nameAr,
+        nameEn: z.nameEn,
+        sortOrder: i,
+        cities: { create: z.cities.map((cityCode) => ({ cityCode })) },
+        rates: { create: z.rates.map((r, j) => ({ ...r, sortOrder: j })) },
+      },
+    });
+  }
+  seedLog.info(`✓ ${ZONES.length} shipping zones`);
+
+  for (const c of COUPONS) {
+    if (await prisma.coupon.findUnique({ where: { code: c.code } })) continue;
+    await prisma.promotion.create({
+      data: {
+        nameAr: c.nameAr,
+        nameEn: c.nameEn,
+        type: c.type,
+        automatic: false,
+        conditions: c.conditions,
+        benefit: c.benefit,
+        perCustomerLimit: c.perCustomerLimit,
+        coupons: { create: { code: c.code } },
+      },
+    });
+  }
+  seedLog.info(`✓ ${COUPONS.length} coupons`);
+
+  const riyadh = await prisma.city.findUnique({ where: { code: 'RUH' } });
+  await prisma.location.upsert({
+    where: { code: 'RUH-01' },
+    create: { code: 'RUH-01', type: 'BRANCH', nameAr: 'معرض الرياض - العليا', nameEn: 'Riyadh showroom – Al Olaya', cityId: riyadh?.id, isPickupPoint: true },
+    update: {},
+  });
+
+  await prisma.setting.upsert({
+    where: { key: 'store.legal' },
+    create: {
+      key: 'store.legal',
+      value: {
+        commercialRegistration: '1010123456',
+        vatNumber: '300000000000003',
+        legalNameAr: 'مؤسسة هدهد للمفروشات',
+        legalNameEn: 'HUDHUD Furnishings Est.',
+        street: 'طريق الملك فهد',
+        buildingNumber: '1234',
+        district: 'العليا',
+        city: 'الرياض',
+        postalCode: '12211',
+      },
+    },
+    update: {},
+  });
+  seedLog.info('✓ pickup showroom and store legal details');
+}

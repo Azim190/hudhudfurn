@@ -10,7 +10,7 @@ export async function SiteFooter({ locale, store }: { locale: Locale; store: Sto
   const whatsapp = store?.contact.whatsapp.replace(/\D/g, '');
 
   return (
-    <footer className="mt-20 border-t border-sand-200 bg-white">
+    <footer className="mt-20 border-t border-sand-200 bg-white print:hidden">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:grid-cols-3 sm:px-6">
         <div className="space-y-2 text-sm text-ink-700">
           <p className="text-lg font-semibold text-ink-900">{storeName}</p>

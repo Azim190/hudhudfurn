@@ -37,6 +37,7 @@ interface CartData {
 
 export function CartView() {
   const t = useTranslations('shop');
+  const tc = useTranslations('checkout');
   const locale = useLocale();
   const format = usePriceFormatter();
   const [cart, setCart] = useState<CartData | null>(null);
@@ -183,6 +184,15 @@ export function CartView() {
           <p className="text-xs text-ink-500">{t('shippingAtCheckout')}</p>
           {!cart.canCheckout && <Alert>{t('fixIssues')}</Alert>}
           {error && <Alert>{error}</Alert>}
+          {cart.canCheckout ? (
+            <Link href="/checkout" className="inline-flex h-13 items-center justify-center rounded-xl bg-brand-600 px-7 text-lg font-medium text-white hover:bg-brand-700">
+              {tc('goToCheckout')}
+            </Link>
+          ) : (
+            <span aria-disabled="true" className="inline-flex h-13 cursor-not-allowed items-center justify-center rounded-xl bg-sand-200 px-7 text-lg font-medium text-ink-500">
+              {tc('goToCheckout')}
+            </span>
+          )}
           <Link href="/" className="text-center text-sm text-brand-700 hover:underline">
             {t('continueShopping')}
           </Link>

@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { seedGeo, seedOwner, seedRbac } from './seed-lib';
+import { seedCommerce, seedGeo, seedOwner, seedRbac } from './seed-lib';
 
 const prisma = new PrismaClient();
 
@@ -7,6 +7,7 @@ async function main() {
   await seedRbac(prisma);
   await seedOwner(prisma);
   await seedGeo(prisma);
+  await seedCommerce(prisma);
 }
 
 main()

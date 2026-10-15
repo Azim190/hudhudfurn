@@ -44,6 +44,20 @@ describe('validateEnv', () => {
   it('requires Unifonic credentials when selected', () => {
     expect(() => validateEnv({ ...baseEnv, SMS_PROVIDER: 'unifonic' })).toThrow(/UNIFONIC_APP_SID/);
   });
+
+  it('refuses the payment simulator and an unconfigured ZATCA key in production', () => {
+    const prod = { ...baseEnv, NODE_ENV: 'production', SMS_PROVIDER: 'unifonic', UNIFONIC_APP_SID: 'x', UNIFONIC_SENDER_ID: 'y', SWAGGER_ENABLED: 'false' };
+    expect(() => validateEnv({ ...prod, PAYMENTS_SIMULATOR: 'true', ZATCA_PRIVATE_KEY: 'k' })).toThrow(/PAYMENTS_SIMULATOR/);
+    expect(() => validateEnv(prod)).toThrow(/ZATCA_PRIVATE_KEY/);
+    expect(validateEnv({ ...prod, ZATCA_PRIVATE_KEY: 'k' }).ZATCA_MODE).toBe('off');
+  });
+
+  it('requires complete gateway and ZATCA credentials', () => {
+    expect(() => validateEnv({ ...baseEnv, ZATCA_MODE: 'sandbox' })).toThrow(/ZATCA_CSID_TOKEN/);
+    expect(() => validateEnv({ ...baseEnv, MOYASAR_SECRET_KEY: 'sk' })).toThrow(/MOYASAR_WEBHOOK_SECRET/);
+    expect(() => validateEnv({ ...baseEnv, TABBY_SECRET_KEY: 'sk' })).toThrow(/TABBY_MERCHANT_CODE/);
+    expect(() => validateEnv({ ...baseEnv, TAMARA_API_TOKEN: 't' })).toThrow(/TAMARA_NOTIFICATION_TOKEN/);
+  });
 });
 
 describe('CryptoService', () => {

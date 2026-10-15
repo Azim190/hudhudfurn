@@ -5,6 +5,7 @@ import { PrismaService } from '../../core/prisma/prisma.service';
 import { availableQuantity, CatalogPresenter, PRODUCT_FULL_INCLUDE } from '../catalog/catalog.presenter';
 import { MediaService } from '../media/media.service';
 import { SettingsService } from '../settings/settings.service';
+import { ShippingService } from '../shipping/shipping.service';
 
 const LIVE = { status: 'ACTIVE' as const, deletedAt: null };
 const MAX_WISHLIST = 200;
@@ -17,6 +18,7 @@ export class ShopService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly settings: SettingsService,
+    private readonly shipping: ShippingService,
     media: MediaService,
   ) {
     this.presenter = new CatalogPresenter(media);
@@ -82,20 +84,26 @@ export class ShopService {
   }
 
   /**
-   * Delivery estimate by city. Interim rule set (settings `shipping.eta`) until shipping zones and
-   * carrier ETAs are configured in the checkout phase; made-to-measure adds production time.
+   * Delivery estimate by city: the fastest rate of the city's shipping zone, plus production time
+   * for made-to-measure products. Falls back to settings `shipping.eta` when no zone covers it.
    */
   async deliveryEstimate(cityCode: string, productId?: string) {
     const city = await this.prisma.city.findFirst({ where: { OR: [{ code: cityCode }, { id: /^[0-9a-f-]{36}$/.test(cityCode) ? cityCode : undefined }], isActive: true } });
     if (!city) throw AppError.notFound({ entity: 'city' });
     const eta = await this.settings.get('shipping.eta');
-    const [min, max] =
-      city.code === 'RUH' ? [eta.riyadhMin, eta.riyadhMax] : ['JED', 'DMM', 'KHB', 'MKK', 'MED', 'DHA'].includes(city.code) ? [eta.mainMin, eta.mainMax] : [eta.otherMin, eta.otherMax];
     let production = { min: 0, max: 0 };
     if (productId) {
       const p = await this.prisma.product.findFirst({ where: { id: productId, ...LIVE }, select: { isMadeToMeasure: true } });
       if (p?.isMadeToMeasure) production = { min: eta.productionMin, max: eta.productionMax };
     }
+    const zoned = await this.shipping.estimate(city.code, false);
+    const [min, max] = zoned
+      ? [zoned.minDays, zoned.maxDays]
+      : city.code === 'RUH'
+        ? [eta.riyadhMin, eta.riyadhMax]
+        : ['JED', 'DMM', 'KHB', 'MKK', 'MED', 'DHA'].includes(city.code)
+          ? [eta.mainMin, eta.mainMax]
+          : [eta.otherMin, eta.otherMax];
     const from = addBusinessDays(new Date(), min + production.min);
     const to = addBusinessDays(new Date(), max + production.max);
     return {
