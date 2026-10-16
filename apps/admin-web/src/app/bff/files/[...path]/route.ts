@@ -11,7 +11,10 @@ const ALLOWED: Record<string, { method: 'GET' | 'POST'; api: string; maxBytes: n
 };
 
 /** Downloads addressed by id. */
-const PATTERNS: Array<{ re: RegExp; method: 'GET'; api: (id: string) => string }> = [{ re: /^invoices\/([0-9a-f-]{36})\/xml$/, method: 'GET', api: (id) => `/admin/invoices/${id}/xml` }];
+const PATTERNS: Array<{ re: RegExp; method: 'GET'; api: (id: string) => string }> = [
+  { re: /^invoices\/([0-9a-f-]{36})\/xml$/, method: 'GET', api: (id) => `/admin/invoices/${id}/xml` },
+  { re: /^configurator\/uploads\/([0-9a-f-]{36})$/, method: 'GET', api: (id) => `/admin/configurator/uploads/${id}` },
+];
 
 async function handle(req: NextRequest, ctx: Ctx) {
   const key = (await ctx.params).path.join('/');

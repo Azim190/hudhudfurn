@@ -129,6 +129,7 @@ export interface AdminProduct {
   samplePrice: number | null;
   photoStyle: 'ON_MODEL' | 'MANNEQUIN' | 'FLAT_LAY' | 'LIFESTYLE' | null;
   sizeGuideId: string | null;
+  configuratorTemplateId: string | null;
   attributeValueIds: string[];
   media: Array<MediaDto & { variantId: string | null; sortOrder: number }>;
   variants: AdminVariant[];

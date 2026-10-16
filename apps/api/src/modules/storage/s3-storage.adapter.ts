@@ -10,16 +10,17 @@ import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { AppConfig } from '../../core/config/app-config.service';
 import type { PutObjectInput, StoragePort } from './storage.port';
 
-@Injectable()
-export class S3StorageAdapter implements StoragePort, OnModuleInit {
-  private readonly logger = new Logger(S3StorageAdapter.name);
+/** One S3 bucket. The public bucket serves catalog media; the private one holds customer uploads. */
+abstract class S3Bucket implements StoragePort, OnModuleInit {
+  private readonly logger = new Logger('S3Storage');
   private readonly client: S3Client;
-  private readonly bucket: string;
-  private readonly publicBase: string;
 
-  constructor(config: AppConfig) {
-    this.bucket = config.get('S3_BUCKET');
-    this.publicBase = config.get('MEDIA_PUBLIC_BASE_URL').replace(/\/$/, '');
+  protected constructor(
+    config: AppConfig,
+    private readonly bucket: string,
+    /** Null for a private bucket: no public URLs, no shared caching. */
+    private readonly publicBase: string | null,
+  ) {
     this.client = new S3Client({
       region: config.get('S3_REGION'),
       endpoint: config.get('S3_ENDPOINT'),
@@ -49,7 +50,7 @@ export class S3StorageAdapter implements StoragePort, OnModuleInit {
         Key: input.key,
         Body: input.body,
         ContentType: input.contentType,
-        CacheControl: input.immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
+        CacheControl: this.publicBase === null ? 'private, no-store' : input.immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
       }),
     );
   }
@@ -70,6 +71,22 @@ export class S3StorageAdapter implements StoragePort, OnModuleInit {
   }
 
   publicUrl(key: string): string {
+    if (this.publicBase === null) throw new Error('Private storage has no public URLs');
     return `${this.publicBase}/${key.split('/').map(encodeURIComponent).join('/')}`;
+  }
+}
+
+@Injectable()
+export class S3StorageAdapter extends S3Bucket {
+  constructor(config: AppConfig) {
+    super(config, config.get('S3_BUCKET'), config.get('MEDIA_PUBLIC_BASE_URL').replace(/\/$/, ''));
+  }
+}
+
+/** Customer uploads (sofa photos): never publicly readable, served to staff through the API. */
+@Injectable()
+export class PrivateS3Storage extends S3Bucket {
+  constructor(config: AppConfig) {
+    super(config, config.get('S3_PRIVATE_BUCKET'), null);
   }
 }

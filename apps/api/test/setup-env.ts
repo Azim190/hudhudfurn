@@ -23,6 +23,7 @@ process.env.ENCRYPTION_KEY ??= Buffer.alloc(32, 7).toString('base64');
 
 // Isolated object storage bucket and search index for tests.
 process.env.S3_BUCKET = process.env.TEST_S3_BUCKET ?? 'hudhud-media-test';
+process.env.S3_PRIVATE_BUCKET = process.env.TEST_S3_PRIVATE_BUCKET ?? 'hudhud-private-test';
 process.env.MEILI_INDEX_PREFIX = 'test_';
 process.env.S3_ENDPOINT ??= 'http://localhost:8333';
 process.env.S3_ACCESS_KEY ??= 'hudhud';

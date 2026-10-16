@@ -103,6 +103,7 @@ export interface ProductDetail extends ProductCard {
   seo: { titleAr: string | null; titleEn: string | null; descriptionAr: string | null; descriptionEn: string | null };
   basePrice: number;
   vatInclusive: boolean;
+  configurator: { kind: 'CURTAIN' | 'BLIND' | 'ABAYA' | 'SOFA_COVER'; code: string } | null;
   sampleAvailable: boolean;
   samplePrice: number | null;
   sizeGuide: {

@@ -10,3 +10,4 @@ export * from './promotions';
 export * from './shipping';
 export * from './checkout';
 export * from './zatca';
+export * from './configurator';

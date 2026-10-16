@@ -54,17 +54,18 @@ model User {
   updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
   deletedAt    DateTime?          @map("deleted_at") @db.Timestamptz(3)
 
-  roles        UserRole[]
-  sessions     Session[]
-  totp         TotpSecret?
-  addresses    Address[]
-  consents     ConsentRecord[]
-  dataRequests DataSubjectRequest[]
-  auditLogs    AuditLog[]
-  wishlist     WishlistItem[]
-  stockAlerts  BackInStockSubscription[]
-  reviews      Review[]
-  orders       Order[]
+  roles               UserRole[]
+  sessions            Session[]
+  totp                TotpSecret?
+  addresses           Address[]
+  consents            ConsentRecord[]
+  dataRequests        DataSubjectRequest[]
+  auditLogs           AuditLog[]
+  wishlist            WishlistItem[]
+  stockAlerts         BackInStockSubscription[]
+  reviews             Review[]
+  orders              Order[]
+  measurementProfiles MeasurementProfile[]
 
   @@index([kind, status])
   @@map("users")
@@ -468,50 +469,52 @@ model Brand {
 }
 
 model Product {
-  id               String                  @id @default(uuid()) @db.Uuid
-  categoryId       String                  @map("category_id") @db.Uuid
-  brandId          String?                 @map("brand_id") @db.Uuid
-  skuPrefix        String                  @unique @map("sku_prefix")
-  nameAr           String                  @map("name_ar")
-  nameEn           String?                 @map("name_en")
-  slugAr           String                  @unique @map("slug_ar")
-  slugEn           String                  @unique @map("slug_en")
-  descriptionAr    String?                 @map("description_ar") @db.Text
-  descriptionEn    String?                 @map("description_en") @db.Text
-  careAr           String?                 @map("care_ar") @db.Text
-  careEn           String?                 @map("care_en") @db.Text
-  seoTitleAr       String?                 @map("seo_title_ar")
-  seoTitleEn       String?                 @map("seo_title_en")
-  seoDescriptionAr String?                 @map("seo_description_ar")
-  seoDescriptionEn String?                 @map("seo_description_en")
-  pricingMode      PricingMode             @default(FIXED) @map("pricing_mode")
+  id                     String                  @id @default(uuid()) @db.Uuid
+  categoryId             String                  @map("category_id") @db.Uuid
+  brandId                String?                 @map("brand_id") @db.Uuid
+  skuPrefix              String                  @unique @map("sku_prefix")
+  nameAr                 String                  @map("name_ar")
+  nameEn                 String?                 @map("name_en")
+  slugAr                 String                  @unique @map("slug_ar")
+  slugEn                 String                  @unique @map("slug_en")
+  descriptionAr          String?                 @map("description_ar") @db.Text
+  descriptionEn          String?                 @map("description_en") @db.Text
+  careAr                 String?                 @map("care_ar") @db.Text
+  careEn                 String?                 @map("care_en") @db.Text
+  seoTitleAr             String?                 @map("seo_title_ar")
+  seoTitleEn             String?                 @map("seo_title_en")
+  seoDescriptionAr       String?                 @map("seo_description_ar")
+  seoDescriptionEn       String?                 @map("seo_description_en")
+  pricingMode            PricingMode             @default(FIXED) @map("pricing_mode")
   /// Halalas: per unit (FIXED), per metre (PER_METER), per square metre (PER_SQM), or "from" price (CALCULATED).
-  basePrice        Int                     @map("base_price")
-  compareAtPrice   Int?                    @map("compare_at_price")
-  vatInclusive     Boolean                 @default(true) @map("vat_inclusive")
-  status           ProductStatus           @default(DRAFT)
-  isMadeToMeasure  Boolean                 @default(false) @map("is_made_to_measure")
-  sampleAvailable  Boolean                 @default(false) @map("sample_available")
-  samplePrice      Int?                    @map("sample_price")
-  photoStyle       PhotoStyle?             @map("photo_style")
-  sizeGuideId      String?                 @map("size_guide_id") @db.Uuid
-  ratingAvg        Decimal                 @default(0) @map("rating_avg") @db.Decimal(3, 2)
-  ratingCount      Int                     @default(0) @map("rating_count")
-  publishedAt      DateTime?               @map("published_at") @db.Timestamptz(3)
-  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deletedAt        DateTime?               @map("deleted_at") @db.Timestamptz(3)
-  category         Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  brand            Brand?                  @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  sizeGuide        SizeGuide?              @relation(fields: [sizeGuideId], references: [id], onDelete: SetNull)
-  variants         ProductVariant[]
-  attributes       ProductAttributeValue[]
-  media            ProductMedia[]
-  collections      CollectionProduct[]
-  relations        ProductRelation[]       @relation("ProductRelationSource")
-  relatedFrom      ProductRelation[]       @relation("ProductRelationTarget")
-  wishlistedBy     WishlistItem[]
-  reviews          Review[]
+  basePrice              Int                     @map("base_price")
+  compareAtPrice         Int?                    @map("compare_at_price")
+  vatInclusive           Boolean                 @default(true) @map("vat_inclusive")
+  status                 ProductStatus           @default(DRAFT)
+  isMadeToMeasure        Boolean                 @default(false) @map("is_made_to_measure")
+  sampleAvailable        Boolean                 @default(false) @map("sample_available")
+  samplePrice            Int?                    @map("sample_price")
+  photoStyle             PhotoStyle?             @map("photo_style")
+  sizeGuideId            String?                 @map("size_guide_id") @db.Uuid
+  ratingAvg              Decimal                 @default(0) @map("rating_avg") @db.Decimal(3, 2)
+  ratingCount            Int                     @default(0) @map("rating_count")
+  publishedAt            DateTime?               @map("published_at") @db.Timestamptz(3)
+  createdAt              DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deletedAt              DateTime?               @map("deleted_at") @db.Timestamptz(3)
+  category               Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  brand                  Brand?                  @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  sizeGuide              SizeGuide?              @relation(fields: [sizeGuideId], references: [id], onDelete: SetNull)
+  variants               ProductVariant[]
+  attributes             ProductAttributeValue[]
+  media                  ProductMedia[]
+  collections            CollectionProduct[]
+  relations              ProductRelation[]       @relation("ProductRelationSource")
+  relatedFrom            ProductRelation[]       @relation("ProductRelationTarget")
+  wishlistedBy           WishlistItem[]
+  reviews                Review[]
+  configuratorTemplateId String?                 @map("configurator_template_id") @db.Uuid
+  configuratorTemplate   ConfiguratorTemplate?   @relation(fields: [configuratorTemplateId], references: [id], onDelete: SetNull)
 
   @@index([categoryId, status])
   @@index([status, publishedAt])
@@ -801,22 +804,24 @@ model Cart {
 }
 
 model CartItem {
-  id          String         @id @default(uuid()) @db.Uuid
-  cartId      String         @map("cart_id") @db.Uuid
-  variantId   String         @map("variant_id") @db.Uuid
-  quantity    Int
+  id              String              @id @default(uuid()) @db.Uuid
+  cartId          String              @map("cart_id") @db.Uuid
+  variantId       String              @map("variant_id") @db.Uuid
+  quantity        Int
   /// Fabric swatch sample of the variant instead of the product itself.
-  isSample    Boolean        @default(false) @map("is_sample")
+  isSample        Boolean             @default(false) @map("is_sample")
   /// For PER_METER (lengthCm) and PER_SQM (widthMm, heightMm) products.
-  lengthCm    Int?           @map("length_cm")
-  widthMm     Int?           @map("width_mm")
-  heightMm    Int?           @map("height_mm")
-  giftWrap    Boolean        @default(false) @map("gift_wrap")
-  giftMessage String?        @map("gift_message")
-  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  cart        Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  lengthCm        Int?                @map("length_cm")
+  widthMm         Int?                @map("width_mm")
+  heightMm        Int?                @map("height_mm")
+  giftWrap        Boolean             @default(false) @map("gift_wrap")
+  giftMessage     String?             @map("gift_message")
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cart            Cart                @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  variant         ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  configurationId String?             @map("configuration_id") @db.Uuid
+  configuration   SavedConfiguration? @relation(fields: [configurationId], references: [id], onDelete: SetNull)
 
   @@index([cartId])
   @@map("cart_items")
@@ -1197,6 +1202,9 @@ model OrderItem {
   order           Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
   variant         ProductVariant?    @relation(fields: [variantId], references: [id], onDelete: SetNull)
   reservations    StockReservation[]
+  configurationId String?            @map("configuration_id") @db.Uuid
+  /// Workshop specification at the time of the order: { templateCode, kind, version, inputs, specs, lines }.
+  configuration   Json?
 
   @@index([orderId])
   @@index([variantId])
@@ -1401,4 +1409,146 @@ model InvoiceChain {
   lastHash String @map("last_hash")
 
   @@map("invoice_chain")
+}
+
+// ─────────────────────────────── Configurator (made-to-measure) ───────────────────────────────
+
+enum ConfiguratorKind {
+  CURTAIN
+  BLIND
+  ABAYA
+  SOFA_COVER
+}
+
+enum OptionPriceBasis {
+  FLAT
+  PER_METER
+  PER_SQM
+  PER_PANEL
+  PER_WIDTH_M
+  PER_PIECE
+}
+
+/// Admin-configurable rules for a made-to-measure product family. Every change bumps `version`;
+/// configurations and order lines record the version they were priced with.
+model ConfiguratorTemplate {
+  id             String               @id @default(uuid()) @db.Uuid
+  code           String               @unique
+  kind           ConfiguratorKind
+  nameAr         String               @map("name_ar")
+  nameEn         String               @map("name_en")
+  version        Int                  @default(1)
+  /// Named numbers used by the formulas, e.g. { sideHem: 50, cutRounding: 100 } (mm).
+  constants      Json                 @default("{}")
+  /// Formula overrides by result name (widths, cutLength, fabricLength, railLength, billableArea).
+  formulas       Json                 @default("{}")
+  isActive       Boolean              @default(true) @map("is_active")
+  createdAt      DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  headingStyles  HeadingStyle[]
+  options        ConfiguratorOption[]
+  products       Product[]
+  configurations SavedConfiguration[]
+
+  @@map("configurator_templates")
+}
+
+model HeadingStyle {
+  id              String               @id @default(uuid()) @db.Uuid
+  templateId      String               @map("template_id") @db.Uuid
+  /// WAVE, PINCH_PLEAT, EYELET, ROD_POCKET
+  code            String
+  nameAr          String               @map("name_ar")
+  nameEn          String               @map("name_en")
+  /// Fullness ratios in hundredths (220 = 2.2×).
+  fullnessMin     Int                  @map("fullness_min")
+  fullnessMax     Int                  @map("fullness_max")
+  fullnessDefault Int                  @map("fullness_default")
+  /// Halalas per metre of rail.
+  makingCostPerM  Int                  @map("making_cost_per_m")
+  sortOrder       Int                  @default(0) @map("sort_order")
+  isActive        Boolean              @default(true) @map("is_active")
+  template        ConfiguratorTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, code])
+  @@map("heading_styles")
+}
+
+model ConfiguratorOption {
+  id            String               @id @default(uuid()) @db.Uuid
+  templateId    String               @map("template_id") @db.Uuid
+  /// MOUNTING, LINING, TRACK, MOTOR, INSTALLATION, CONTROL, FABRIC, TAILORING (single choice);
+  /// ACCESSORY, EXTRA (multiple); PIECE (sofa pieces with quantities).
+  group         String
+  code          String
+  nameAr        String               @map("name_ar")
+  nameEn        String               @map("name_en")
+  descriptionAr String?              @map("description_ar")
+  descriptionEn String?              @map("description_en")
+  priceBasis    OptionPriceBasis     @map("price_basis")
+  /// Halalas per unit of the price basis, VAT-inclusive like catalog prices.
+  price         Int
+  isDefault     Boolean              @default(false) @map("is_default")
+  sortOrder     Int                  @default(0) @map("sort_order")
+  isActive      Boolean              @default(true) @map("is_active")
+  template      ConfiguratorTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, group, code])
+  @@map("configurator_options")
+}
+
+/// A customer's made-to-measure specification, attached to a cart line and snapshotted on the order.
+model SavedConfiguration {
+  id              String               @id @default(uuid()) @db.Uuid
+  templateId      String               @map("template_id") @db.Uuid
+  templateVersion Int                  @map("template_version")
+  productId       String               @map("product_id") @db.Uuid
+  variantId       String               @map("variant_id") @db.Uuid
+  userId          String?              @map("user_id") @db.Uuid
+  /// Customer inputs (dimensions in mm, choices, measurements, pieces, photo ids, notes).
+  inputs          Json
+  /// Last quote: { lines, specs } — the workshop specification.
+  computed        Json
+  total           Int
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  template        ConfiguratorTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  cartItems       CartItem[]
+  uploads         CustomerUpload[]
+
+  @@index([userId])
+  @@map("saved_configurations")
+}
+
+/// Saved abaya body measurements (mm) for reuse.
+model MeasurementProfile {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  label        String
+  measurements Json
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("measurement_profiles")
+}
+
+/// Customer photos (e.g. of a sofa), stored in the private bucket and visible to staff only.
+model CustomerUpload {
+  id              String              @id @default(uuid()) @db.Uuid
+  storageKey      String              @unique @map("storage_key")
+  contentType     String              @map("content_type")
+  width           Int
+  height          Int
+  bytes           Int
+  userId          String?             @map("user_id") @db.Uuid
+  configurationId String?             @map("configuration_id") @db.Uuid
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  configuration   SavedConfiguration? @relation(fields: [configurationId], references: [id], onDelete: SetNull)
+
+  @@index([configurationId])
+  @@index([createdAt])
+  @@map("customer_uploads")
 }

@@ -35,6 +35,7 @@ export function ProductEditor({
   initial,
   categories,
   sizeGuides,
+  templates,
   locations,
   permissions,
   storefrontUrl,
@@ -42,6 +43,7 @@ export function ProductEditor({
   initial: AdminProduct;
   categories: Array<{ id: string; label: string }>;
   sizeGuides: Array<{ id: string; titleAr: string; titleEn: string | null }>;
+  templates: Array<{ id: string; code: string; kind: string; nameAr: string; nameEn: string }>;
   locations: Location[];
   permissions: { write: boolean; publish: boolean; media: boolean; stock: boolean };
   storefrontUrl: string;
@@ -84,7 +86,7 @@ export function ProductEditor({
       content = <DetailsTab ctx={ctx} />;
       break;
     case 'pricing':
-      content = <PricingTab ctx={ctx} categories={categories} sizeGuides={sizeGuides} />;
+      content = <PricingTab ctx={ctx} categories={categories} sizeGuides={sizeGuides} templates={templates} />;
       break;
     case 'attributes':
       content = <AttributesTab ctx={ctx} />;

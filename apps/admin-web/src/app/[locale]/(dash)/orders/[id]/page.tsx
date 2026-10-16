@@ -20,13 +20,22 @@ interface AdminOrder {
   shippingAddress: { recipientName: string; phoneE164: string; cityNameAr: string; cityNameEn: string; district: string | null; street: string | null; buildingNo: string | null; postalCode: string | null; shortAddress: string | null } | null;
   pickupLocation: { nameAr: string; nameEn: string | null } | null;
   shipping: { nameAr: string | null; nameEn: string | null; carrier: string | null } | null;
-  items: Array<{ id: string; sku: string; nameAr: string; nameEn: string | null; quantity: number; unitPrice: number; discount: number; total: number; isSample: boolean; isMadeToMeasure: boolean; widthMm: number | null; heightMm: number | null; lengthCm: number | null; options: Array<{ labelAr: string; labelEn: string | null }>; giftWrap: boolean; giftMessage: string | null }>;
+  items: Array<{ id: string; sku: string; nameAr: string; nameEn: string | null; quantity: number; unitPrice: number; discount: number; total: number; isSample: boolean; isMadeToMeasure: boolean; widthMm: number | null; heightMm: number | null; lengthCm: number | null; options: Array<{ labelAr: string; labelEn: string | null }>; giftWrap: boolean; giftMessage: string | null; configuration: WorkshopSpec | null }>;
   totals: { subtotal: number; discount: number; giftWrap: number; shipping: number; codFee: number; vat: number; total: number; refunded: number };
   couponCode: string | null;
   events: Array<{ id: string; fromStatus: string | null; toStatus: string; note: string | null; actorId: string | null; createdAt: string }>;
   payments: Array<{ id: string; provider: string; method: string; status: string; amount: number; providerRef: string | null; sourceSummary: string | null; failureReason: string | null; createdAt: string }>;
   refunds: Array<{ id: string; amount: number; status: string; reason: string; createdAt: string }>;
   invoices: Array<{ id: string; kind: string; number: string; issuedAt: string; total: number; zatcaStatus: string }>;
+}
+
+interface WorkshopSpec {
+  templateCode: string;
+  kind: string;
+  templateVersion: number;
+  inputs: { photoIds?: string[]; pieces?: unknown[] };
+  specs: Record<string, number | string>;
+  choices?: Array<{ group: string; code: string; nameAr: string; nameEn: string }>;
 }
 
 export default async function AdminOrderPage({ params }: { params: Promise<{ locale: string; id: string }> }) {
@@ -83,6 +92,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ loc
                           .map((x) => ` · ${x}`)
                           .join('')}
                       </p>
+                      {i.configuration && <WorkshopSpecView spec={i.configuration} title={t('workshopSpec')} photosTitle={t('customerPhotos')} locale={locale} />}
                     </td>
                     <td className="px-3 py-3 text-center">× {i.quantity}</td>
                     <td className="px-5 py-3 text-end font-semibold whitespace-nowrap">{money(i.total)}</td>
@@ -213,5 +223,39 @@ function Row({ label, value, strong }: { label: string; value: string; strong?: 
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
+  );
+}
+
+/** Full made-to-measure specification for the workshop: every spec value, the chosen options and the customer's photos. */
+function WorkshopSpecView({ spec, title, photosTitle, locale }: { spec: WorkshopSpec; title: string; photosTitle: string; locale: string }) {
+  const photos = spec.inputs.photoIds ?? [];
+  return (
+    <details className="mt-2 rounded-lg bg-sand-100 p-3 text-xs" open>
+      <summary className="cursor-pointer font-semibold">
+        {title} · {spec.templateCode} v{spec.templateVersion}
+      </summary>
+      {spec.choices && spec.choices.length > 0 && <p className="mt-2">{spec.choices.map((c) => (locale === 'en' ? c.nameEn : c.nameAr)).join(' · ')}</p>}
+      <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 sm:grid-cols-3" dir="ltr">
+        {Object.entries(spec.specs).map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-2 border-b border-sand-200 py-0.5">
+            <dt className="text-ink-500">{k}</dt>
+            <dd className="font-mono">{String(v)}</dd>
+          </div>
+        ))}
+      </dl>
+      {photos.length > 0 && (
+        <>
+          <p className="mt-3 font-semibold">{photosTitle}</p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {photos.map((id) => (
+              <a key={id} href={`/bff/files/configurator/uploads/${id}`} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- private image served through the admin proxy */}
+                <img src={`/bff/files/configurator/uploads/${id}`} alt="" className="size-20 rounded-md object-cover" />
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+    </details>
   );
 }

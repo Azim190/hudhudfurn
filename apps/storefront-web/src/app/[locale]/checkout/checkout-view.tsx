@@ -3,6 +3,7 @@
 import { Alert, Button, Card, Field, SelectField, Spinner, TextAreaField, cn } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ConfigurationSummary, type ConfigurationInfo } from '@/components/configuration-summary';
 import { usePriceFormatter } from '@/components/price';
 import { Link, useRouter } from '@/i18n/navigation';
 import { pick, type Media } from '@/lib/catalog-types';
@@ -38,7 +39,7 @@ export interface SavedAddress {
 type Method = 'CARD' | 'TABBY' | 'TAMARA' | 'COD';
 
 interface Quote {
-  items: Array<{ id: string; nameAr: string; nameEn: string | null; image: Media | null; quantity: number; isSample: boolean; total: number | null; discount: number; issue: string | null; options: Array<{ labelAr: string; labelEn: string | null }> }>;
+  items: Array<{ id: string; nameAr: string; nameEn: string | null; image: Media | null; quantity: number; isSample: boolean; total: number | null; discount: number; issue: string | null; options: Array<{ labelAr: string; labelEn: string | null }>; configuration: ConfigurationInfo | null }>;
   shippingOptions: Array<{ rateId: string; nameAr: string; nameEn: string; price: number; listPrice: number; etaMinDays: number; etaMaxDays: number }>;
   selectedShippingRateId: string | null;
   eta: { minDays: number; maxDays: number } | null;
@@ -377,6 +378,7 @@ export function CheckoutView({ cities, pickupLocations, addresses, user }: { cit
                     <span className="min-w-0 flex-1">
                       <span className="line-clamp-2">{pick(locale, i.nameAr, i.nameEn)}</span>
                       {i.options.length > 0 && <span className="block text-xs text-ink-500">{i.options.map((o) => pick(locale, o.labelAr, o.labelEn)).join(' · ')}</span>}
+                      {i.configuration && <ConfigurationSummary configuration={i.configuration} className="block text-xs text-ink-500" />}
                     </span>
                     <span className="shrink-0">{i.total !== null ? format(i.total) : '—'}</span>
                   </li>

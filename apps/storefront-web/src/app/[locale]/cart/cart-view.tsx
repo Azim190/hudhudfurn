@@ -3,6 +3,7 @@
 import { Alert, Button, Card, Checkbox, Spinner, cn } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { ConfigurationSummary, type ConfigurationInfo } from '@/components/configuration-summary';
 import { usePriceFormatter } from '@/components/price';
 import { Link } from '@/i18n/navigation';
 import { pick, type Media } from '@/lib/catalog-types';
@@ -20,6 +21,7 @@ interface CartLine {
   heightMm: number | null;
   giftWrap: boolean;
   giftMessage: string | null;
+  configuration: (ConfigurationInfo & { id: string }) | null;
   unitPrice: number | null;
   lineTotal: number | null;
   maxQuantity: number;
@@ -127,6 +129,7 @@ export function CartView() {
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
+                  {line.configuration && <ConfigurationSummary configuration={line.configuration} />}
                   {line.unitPrice !== null && line.quantity > 1 && <p className="text-xs text-ink-500">{format(line.unitPrice)} × {line.quantity}</p>}
                   {line.issue && <p className="text-sm font-medium text-danger-600">{t(`issue_${line.issue}` as 'issue_insufficientStock', { available: line.available ?? 0 })}</p>}
 

@@ -67,8 +67,8 @@ node scripts/check-logical-css.mjs apps/storefront-web/src   # bans physical lef
 | 2 | Catalog: categories, products, variants, attributes, media, search, inventory, import/export | ✅ |
 | 3 | Storefront browsing, product pages, cart, wishlist, compare, banners | ✅ |
 | 4 | Checkout, payments, VAT, shipping, ZATCA invoices | ✅ |
-| 5 | Made-to-measure configurators | ⏳ next |
-| 6 | Measurement/installation services, technician flow, quotations | |
+| 5 | Made-to-measure configurators | ✅ |
+| 6 | Measurement/installation services, technician flow, quotations | ⏳ next |
 | 7 | Admin: orders, inventory, workshop, reports, marketing, settings | |
 | 8 | Notifications and carrier integrations | |
 | 9 | Flutter apps | |

@@ -45,7 +45,8 @@ export type ErrorCode =
   | 'orderNotPayable'
   | 'orderTransitionInvalid'
   | 'refundFailed'
-  | 'paymentProviderError';
+  | 'paymentProviderError'
+  | 'configurationInvalid';
 
 export class AppError extends Error {
   constructor(

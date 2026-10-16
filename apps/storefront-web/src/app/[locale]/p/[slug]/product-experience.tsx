@@ -11,6 +11,7 @@ import { Link } from '@/i18n/navigation';
 import { pick, type ProductDetail } from '@/lib/catalog-types';
 import { useCookie } from '@/lib/client-cookies';
 import { announceCartCount, toggleCompare, trackRecentlyViewed, useCompare } from '@/lib/shop-store';
+import { Configurator } from './configurator/configurator';
 import { DeliveryEstimate } from './delivery-estimate';
 import { ProductGallery } from './product-gallery';
 import { SizeGuideDialog } from './size-guide-dialog';
@@ -85,8 +86,13 @@ export function ProductExperience({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [variant, size, measured, sizeValid]);
 
-  const configured = product.pricingMode === 'CALCULATED';
+  // Made-to-measure: CALCULATED products are always configured; an abaya template adds optional custom tailoring.
+  const configurable = Boolean(product.configurator);
+  const [custom, setCustom] = useState(product.pricingMode === 'CALCULATED');
+  const configured = product.pricingMode === 'CALCULATED' || (configurable && custom);
   const canBuy = Boolean(variant?.available) && !configured && (!measured || sizeValid);
+  const colorAxis = product.axes.find((a) => a.type === 'COLOR');
+  const swatchHex = colorAxis?.values.find((v) => v.code === selection[colorAxis.key])?.swatchHex ?? null;
 
   async function addToCart(isSample = false) {
     if (!variant) return;
@@ -129,9 +135,11 @@ export function ProductExperience({
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">{name}</h1>
           <div className="mt-3 flex flex-wrap items-baseline gap-3">
-            {measured && !sizeValid && <span className="text-ink-500">{t('from')}</span>}
+            {((measured && !sizeValid) || product.pricingMode === 'CALCULATED') && <span className="text-ink-500">{t('from')}</span>}
             <Price amount={unitPrice} compareAt={measured ? null : variant?.compareAtPrice} size="lg" />
             {measured && !sizeValid && <span className="text-sm text-ink-500">{product.pricingMode === 'PER_SQM' ? t('perSqm') : t('perMeter')}</span>}
+            {product.configurator?.kind === 'CURTAIN' && <span className="text-sm text-ink-500">{t('perMeterFabric')}</span>}
+            {product.configurator?.kind === 'BLIND' && <span className="text-sm text-ink-500">{t('perSqm')}</span>}
             {variant && variant.discountPercent > 0 && !measured && (
               <span className="rounded-full bg-danger-600 px-2.5 py-0.5 text-sm font-semibold text-white">{t('off', { percent: variant.discountPercent })}</span>
             )}
@@ -210,7 +218,26 @@ export function ProductExperience({
           </fieldset>
         )}
 
-        {configured ? (
+        {configurable && product.pricingMode !== 'CALCULATED' && (
+          <div role="radiogroup" aria-label={t('customTailoring')} className="grid grid-cols-2 gap-2">
+            {[false, true].map((on) => (
+              <button
+                key={String(on)}
+                type="button"
+                role="radio"
+                aria-checked={custom === on}
+                onClick={() => setCustom(on)}
+                className={cn('rounded-xl border px-3 py-2.5 text-sm', custom === on ? 'border-brand-600 bg-brand-50 font-medium text-brand-700' : 'border-sand-300 bg-white')}
+              >
+                {on ? t('customTailoring') : t('standardSize')}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {configured && configurable ? (
+          <Configurator productId={product.id} productName={name} variantId={variant?.id} swatchHex={swatchHex} whatsapp={whatsapp} productUrl={productUrl} signedIn={signedIn} />
+        ) : configured ? (
           <div className="rounded-card border border-brand-100 bg-brand-50 p-4">
             <p className="font-semibold text-brand-700">{t('configuredTitle')}</p>
             <p className="mt-1 text-sm text-ink-700">{t('configuredHint')}</p>

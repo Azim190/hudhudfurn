@@ -15,6 +15,8 @@ export interface StoragePort {
 }
 
 export const STORAGE = Symbol('STORAGE');
+/** Same port, private bucket (no public URLs). */
+export const PRIVATE_STORAGE = Symbol('PRIVATE_STORAGE');
 
 /**
  * Upload scanning hook (OWASP file-upload guidance). The default adapter accepts everything

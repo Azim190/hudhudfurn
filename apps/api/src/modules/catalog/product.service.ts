@@ -135,6 +135,7 @@ export class ProductService {
     const skuPrefix = dto.skuPrefix ?? (await this.nextSkuPrefix(category.vertical));
     if (await this.prisma.product.findUnique({ where: { skuPrefix } })) throw AppError.conflict('conflict', { field: 'skuPrefix' });
     if (dto.attributeValueIds?.length) await this.assertProductAttributes(dto.categoryId, dto.attributeValueIds);
+    if (dto.configuratorTemplateId) await this.assertTemplate(dto.configuratorTemplateId, dto.pricingMode ?? 'FIXED');
 
     const slugAr = dto.slugAr ?? (await this.slug(slugify(dto.nameAr, 'ar'), 'slugAr'));
     const slugEn = dto.slugEn ?? (await this.slug(slugify(dto.nameEn ?? '', 'en') || skuPrefix.toLowerCase(), 'slugEn'));
@@ -155,6 +156,13 @@ export class ProductService {
     return this.get(product.id);
   }
 
+  /** Curtain, blind and sofa templates price the whole item (CALCULATED); abaya templates add custom tailoring to any product. */
+  private async assertTemplate(templateId: string, pricingMode: string) {
+    const t = await this.prisma.configuratorTemplate.findUnique({ where: { id: templateId }, select: { kind: true } });
+    if (!t) throw AppError.badRequest('validation', { field: 'configuratorTemplateId' });
+    if (t.kind !== 'ABAYA' && pricingMode !== 'CALCULATED') throw AppError.badRequest('validation', { field: 'configuratorTemplateId', reason: 'requiresCalculatedPricing' });
+  }
+
   async update(id: string, dto: UpdateProductDto) {
     const current = await this.prisma.product.findFirst({ where: { id, deletedAt: null } });
     if (!current) throw AppError.notFound({ entity: 'product' });
@@ -164,6 +172,8 @@ export class ProductService {
       if (!(await this.prisma.category.findUnique({ where: { id: dto.categoryId } }))) throw AppError.badRequest('validation', { field: 'categoryId' });
     }
     if (dto.attributeValueIds) await this.assertProductAttributes(categoryId, dto.attributeValueIds);
+    const templateId = dto.configuratorTemplateId === undefined ? current.configuratorTemplateId : dto.configuratorTemplateId;
+    if (templateId) await this.assertTemplate(templateId, dto.pricingMode ?? current.pricingMode);
 
     const { attributeValueIds, skuPrefix: _sku, ...data } = dto;
     await this.prisma.$transaction(async (tx) => {

@@ -14,12 +14,15 @@ export function PricingTab({
   ctx,
   categories,
   sizeGuides,
+  templates,
 }: {
   ctx: EditorContext;
   categories: Array<{ id: string; label: string }>;
   sizeGuides: Array<{ id: string; titleAr: string; titleEn: string | null }>;
+  templates: Array<{ id: string; code: string; kind: string; nameAr: string; nameEn: string }>;
 }) {
   const t = useTranslations('catalog');
+  const ta = useTranslations('admin');
   const locale = useLocale();
   const p = ctx.product;
   const [form, setForm] = useState({
@@ -33,6 +36,7 @@ export function PricingTab({
     samplePrice: halalasToSar(p.samplePrice),
     photoStyle: p.photoStyle ?? '',
     sizeGuideId: p.sizeGuideId ?? '',
+    configuratorTemplateId: p.configuratorTemplateId ?? '',
   });
   const disabled = !ctx.canWrite;
 
@@ -54,6 +58,7 @@ export function PricingTab({
             samplePrice: form.sampleAvailable ? sarToHalalas(form.samplePrice) : null,
             photoStyle: form.photoStyle || null,
             sizeGuideId: form.sizeGuideId || null,
+            configuratorTemplateId: form.configuratorTemplateId || null,
           },
           locale,
         ),
@@ -93,6 +98,14 @@ export function PricingTab({
           {sizeGuides.map((g) => (
             <option key={g.id} value={g.id}>
               {locale === 'en' ? g.titleEn || g.titleAr : g.titleAr}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField label={ta('configuratorTemplate')} value={form.configuratorTemplateId} onChange={(e) => setForm({ ...form, configuratorTemplateId: e.target.value })} disabled={disabled}>
+          <option value="">{ta('none')}</option>
+          {templates.map((tpl) => (
+            <option key={tpl.id} value={tpl.id}>
+              {locale === 'en' ? tpl.nameEn : tpl.nameAr} ({tpl.kind})
             </option>
           ))}
         </SelectField>

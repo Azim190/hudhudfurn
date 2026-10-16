@@ -1,5 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, ValidateNested } from 'class-validator';
+import { ConfigurationInputsDto } from '../configurator/configurator.dto';
+
+export class CartConfigurationDto {
+  @ApiProperty({ type: ConfigurationInputsDto }) @ValidateNested() @Type(() => ConfigurationInputsDto) inputs: ConfigurationInputsDto;
+}
 
 export class AddCartItemDto {
   @ApiProperty() @IsUUID() variantId: string;
@@ -10,6 +16,11 @@ export class AddCartItemDto {
   @ApiPropertyOptional({ description: 'PER_SQM products: height in mm' }) @IsOptional() @IsInt() @Min(1) @Max(100_000) heightMm?: number;
   @ApiPropertyOptional() @IsOptional() @IsBoolean() giftWrap?: boolean;
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(250) giftMessage?: string;
+  @ApiPropertyOptional({ type: CartConfigurationDto, description: 'Made-to-measure specification (configurator)' })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CartConfigurationDto)
+  configuration?: CartConfigurationDto;
 }
 
 export class UpdateCartItemDto {

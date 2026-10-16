@@ -20,6 +20,7 @@ import { ProductService } from '../modules/catalog/product.service';
 import { MediaService } from '../modules/media/media.service';
 import { SearchService } from '../modules/search/search.service';
 import { SEED_ATTRIBUTES } from './seed-data/attributes';
+import { seedConfigurators } from './seed-data/configurator';
 import { SEED_CATEGORIES, SEED_SIZE_GUIDES } from './seed-data/categories';
 import { renderBannerImage, renderProductImage } from './seed-data/product-image';
 import { CARE, SEED_COLLECTIONS, SEED_LOOKS, SEED_PRODUCTS } from './seed-data/products';
@@ -268,6 +269,8 @@ async function main() {
     });
     log('✓ banners');
   }
+
+  await seedConfigurators(prisma, log);
 
   const { indexed } = await search.reindexAll();
   log(`✓ search index: ${indexed} products`);

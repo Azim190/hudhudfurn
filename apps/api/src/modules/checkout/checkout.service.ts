@@ -7,6 +7,7 @@ import {
   type CartLineInput,
   type CheckoutTotals,
   type PromotionLine,
+  type Quote,
   type ShippingOption,
 } from '@hudhud/domain';
 import type { City, District, Location, PaymentMethod, Prisma } from '@prisma/client';
@@ -14,6 +15,7 @@ import { AppError } from '../../core/errors/app-error';
 import { nextCounter, riyadhYear, sequenceNumber } from '../../core/prisma/document-counter';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { CartService, type CartItemFull, type CartOwner, type LineIssue } from '../cart/cart.service';
+import { ConfiguratorService } from '../configurator/configurator.service';
 import { OrderPaymentsService } from '../orders/order-payments.service';
 import { OrdersService } from '../orders/orders.service';
 import { StockLedger } from '../orders/stock-ledger';
@@ -47,6 +49,7 @@ interface AddressSnapshot {
 interface PreparedQuote {
   cartId: string;
   items: Array<{ item: CartItemFull; issue: { issue: LineIssue; available?: number } | null }>;
+  quotes: Map<string, Quote | null>;
   lines: CartLineInput[];
   promo: PromotionEvaluation;
   totals: CheckoutTotals;
@@ -75,6 +78,7 @@ export class CheckoutService {
     private readonly orders: OrdersService,
     private readonly payments: OrderPaymentsService,
     private readonly search: SearchSync,
+    private readonly configurator: ConfiguratorService,
   ) {}
 
   async pickupLocations() {
@@ -129,6 +133,7 @@ export class CheckoutService {
         isSample: item.isSample,
         samplePrice: product.samplePrice,
         giftWrap: item.giftWrap,
+        configuredPrice: loaded.quotes.get(item.id)?.total ?? null,
       };
       let unitPrice: number;
       try {
@@ -141,7 +146,8 @@ export class CheckoutService {
       promoLines.push({ id: item.id, productId: product.id, categoryIds: lineage(product.categoryId), vertical: product.category.vertical, unitPrice, quantity: item.quantity, excluded: item.isSample });
       weightG += (item.isSample ? SAMPLE_WEIGHT_G : (item.variant.weightGrams ?? DEFAULT_ITEM_WEIGHT_G)) * item.quantity;
     }
-    const hasMadeToMeasure = ok.some(({ item }) => item.variant.product.isMadeToMeasure && !item.isSample);
+    // Configured lines (custom curtains, tailored abayas, sofa covers) are produced per order.
+    const hasMadeToMeasure = ok.some(({ item }) => (item.variant.product.isMadeToMeasure || item.configurationId) && !item.isSample);
 
     const promo = await this.promotions.evaluate(promoLines, dto.couponCode?.trim() || undefined, shopper);
     const goods = computeCheckoutTotals({ lines, lineDiscounts: promo.result.lineDiscounts, shipping: 0, codFee: 0, settings: pricing });
@@ -195,7 +201,7 @@ export class CheckoutService {
     const codFee = selectedMethod === 'COD' && codCheck.allowed ? codCheck.fee : 0;
 
     const totals = computeCheckoutTotals({ lines, lineDiscounts: promo.result.lineDiscounts, shipping: shippingPrice, codFee, settings: pricing });
-    return { cartId: loaded.cart.id, items: loaded.items, lines, promo, totals, destination, shippingOptions, selectedRate, pickupEta, paymentMethods, selectedMethod, blockers: [...blockers], hasMadeToMeasure };
+    return { cartId: loaded.cart.id, items: loaded.items, quotes: loaded.quotes, lines, promo, totals, destination, shippingOptions, selectedRate, pickupEta, paymentMethods, selectedMethod, blockers: [...blockers], hasMadeToMeasure };
   }
 
   private async resolveAddress(dto: CheckoutBaseDto, shopper: Shopper): Promise<{ snapshot: AddressSnapshot; city: City } | null> {
@@ -249,6 +255,7 @@ export class CheckoutService {
           nameEn: card.nameEn,
           image: card.image,
           options: this.options(item),
+          configuration: item.configuration ? this.carts.configurationView(item.configuration, q.quotes.get(item.id) ?? null) : null,
           quantity: item.quantity,
           isSample: item.isSample,
           lengthCm: item.lengthCm,
@@ -313,6 +320,11 @@ export class CheckoutService {
     const pricedById = new Map(q.totals.cart.lines.map((l) => [l.id, l]));
     const items = q.items.map((i) => i.item).filter((i) => pricedById.has(i.id));
     const productIds = items.map((i) => i.variant.productId);
+    const snapshots = new Map<string, Awaited<ReturnType<ConfiguratorService['snapshot']>>>();
+    for (const item of items) {
+      const quote = q.quotes.get(item.id);
+      if (item.configuration && quote) snapshots.set(item.id, await this.configurator.snapshot(item.configuration, quote));
+    }
 
     const order = await this.prisma.$transaction(
       async (tx) => {
@@ -373,7 +385,9 @@ export class CheckoutService {
                   options: this.options(item) as Prisma.InputJsonValue,
                   imageUrl: card.image?.thumbnailUrl ?? null,
                   pricingMode: item.variant.product.pricingMode,
-                  isMadeToMeasure: item.variant.product.isMadeToMeasure,
+                  isMadeToMeasure: item.variant.product.isMadeToMeasure || Boolean(item.configurationId),
+                  configurationId: item.configurationId,
+                  configuration: (snapshots.get(item.id) ?? undefined) as Prisma.InputJsonValue | undefined,
                   isSample: item.isSample,
                   lengthCm: item.lengthCm,
                   widthMm: item.widthMm,
@@ -404,7 +418,7 @@ export class CheckoutService {
         await this.stock.reserve(
           tx,
           created.id,
-          items.flatMap((item, idx) => (item.isSample || item.variant.product.isMadeToMeasure ? [] : [{ orderItemId: bySort.get(idx)!.id, variantId: item.variantId, sku: item.variant.sku, quantity: item.quantity }])),
+          items.flatMap((item, idx) => (item.isSample || item.variant.product.isMadeToMeasure || item.configurationId ? [] : [{ orderItemId: bySort.get(idx)!.id, variantId: item.variantId, sku: item.variant.sku, quantity: item.quantity }])),
         );
         await this.promotions.redeem(tx, created.id, q.promo.result.applied, q.promo.coupon, promoShopper);
         await tx.cart.update({ where: { id: q.cartId }, data: { status: 'CONVERTED' } });

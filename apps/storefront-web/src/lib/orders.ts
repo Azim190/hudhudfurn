@@ -21,6 +21,7 @@ export interface OrderItemView {
   giftWrap: boolean;
   giftWrapTotal: number;
   giftMessage: string | null;
+  configuration: { kind: string; specs: Record<string, number | string>; choices?: Array<{ group: string; code: string; nameAr: string; nameEn: string }> } | null;
   total: number;
 }
 

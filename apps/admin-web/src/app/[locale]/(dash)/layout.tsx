@@ -16,6 +16,7 @@ const NAV = [
   { href: '/catalog/attributes', key: 'catalog.attributes', permission: 'catalog.attribute.read' },
   { href: '/catalog/import', key: 'admin.importExport', permission: 'catalog.product.import' },
   { href: '/marketing/banners', key: 'marketing.banners', permission: 'marketing.read' },
+  { href: '/configurator', key: 'admin.configurator', permission: 'settings.read' },
   { href: '/staff', key: 'admin.staff', permission: 'rbac.read' },
   { href: '/audit', key: 'admin.auditLog', permission: 'audit.view' },
 ] as const;

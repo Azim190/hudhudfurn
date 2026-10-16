@@ -124,7 +124,24 @@ The storefront BFF adds `POST /bff/revalidate` (Bearer `REVALIDATE_SECRET`, tags
 
 The storefront BFF adds `POST /bff/checkout/quote`, `POST /bff/checkout/orders` (keeps the guest order token in the httpOnly `hd_orders` cookie and clears the guest cart), `POST /bff/orders/:id/{verify,pay,cancel}`, `GET /bff/geo/cities/:id/districts` and `GET /bff/me/addresses`. The admin file proxy adds `GET /bff/files/invoices/:id/xml`.
 
-## Configurator
+## Configurator: as implemented in Phase 5
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | /configurator/products/:productId | Public | Template (constants, heading styles, options with price basis) and the product's variants with fabric widths |
+| POST | /configurator/quote | Public | `productId, variantId, inputs` → `{ valid, issues[], lines[], total, specs, choices }`. Stateless; called on every change |
+| POST | /configurator/uploads | Guest or customer | Multipart image (≤ 10 MB). Re-encoded, metadata stripped, stored privately; returns an id for `inputs.photoIds` |
+| POST | /cart/items | Guest or customer | Configured products: `{ variantId, quantity, configuration: { inputs } }`. Saves the configuration; configured lines never merge |
+| GET, POST, PATCH, DELETE | /me/measurement-profiles[/:id] | Customer | Saved abaya measurements (mm), up to 10 |
+| GET, POST, PATCH | /admin/configurator/templates[/:id] | settings.read / settings.configurator | Constants and formulas are validated on save; every change bumps the version |
+| POST, PATCH | /admin/configurator/templates/:id/heading-styles, /admin/configurator/heading-styles/:id | settings.configurator | Fullness in hundredths (220 = 2.2×), making cost per metre of rail |
+| POST, PATCH | /admin/configurator/templates/:id/options, /admin/configurator/options/:id | settings.configurator | Group, code, price, price basis, default |
+| POST | /admin/configurator/templates/:id/simulate | settings.read | Quote sample inputs against the current rules |
+| GET | /admin/configurator/uploads/:id | orders.read | Customer photo (private) |
+
+Order lines of configured items carry `configuration`: template code and version, inputs, workshop specs, chosen options and price lines. Admin product updates accept `configuratorTemplateId`.
+
+## Configurator (planned)
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | /configurator/templates/:productId | P | Steps, heading styles, options, constraints |

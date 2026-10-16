@@ -52,6 +52,8 @@ export const envSchema = z.object({
   S3_ENDPOINT: z.string().url().optional(),
   S3_REGION: z.string().default('me-central-1'),
   S3_BUCKET: z.string().default('hudhud-media'),
+  /** Bucket without public access for customer uploads. */
+  S3_PRIVATE_BUCKET: z.string().default('hudhud-private'),
   S3_ACCESS_KEY: z.string().min(1),
   S3_SECRET_KEY: z.string().min(1),
   S3_FORCE_PATH_STYLE: bool.default('true'),

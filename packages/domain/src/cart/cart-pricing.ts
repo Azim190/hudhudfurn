@@ -19,6 +19,8 @@ export interface CartLineInput {
   samplePrice?: Halalas | null;
   giftWrap?: boolean;
   discount?: Halalas;
+  /** Unit price from the made-to-measure configurator (overrides the pricing mode). */
+  configuredPrice?: Halalas | null;
 }
 
 export interface CartPricingSettings {
@@ -70,6 +72,7 @@ export function priceCartLineUnit(line: CartLineInput, rules?: PricingRules): { 
     if (line.samplePrice === null || line.samplePrice === undefined) throw new CartPricingError(line.id, 'Samples are not available for this product');
     return { unitPrice: assertHalalas(line.samplePrice, 'samplePrice') };
   }
+  if (line.configuredPrice !== null && line.configuredPrice !== undefined) return { unitPrice: assertHalalas(line.configuredPrice, 'configuredPrice') };
   switch (line.pricingMode) {
     case 'FIXED':
       return { unitPrice: priceLine({ mode: 'FIXED', unitPrice: line.unitPrice, quantity: 1 }).unitPrice };

@@ -73,3 +73,14 @@ Each item below is a sensible default chosen so work is not blocked. All of them
 48. **Sample seller data**: legal name "مؤسسة هدهد للمفروشات", CR 1010123456, VAT 300000000000003, King Fahd Road, Al Olaya, Riyadh. Replace these in settings `store.legal` before going live. Invoices are refused if the VAT number is not a valid Saudi format.
 49. **Invoice numbering**: `INV-YYYY-NNNNNN` and `CN-YYYY-NNNNNN` reset yearly (Riyadh time); the ZATCA ICV never resets. Simplified invoices carry no buyer details (B2C). Standard B2B tax invoices (clearance) are out of scope until requested.
 50. **VAT on inclusive prices** is extracted per line, half-up, so the customer pays exactly the displayed price. ZATCA's rate checks may report ±0.01 SAR rounding warnings on some lines; warnings do not block reporting.
+
+## Added during Phase 5
+51. **Curtain pricing** (template `CUSTOM_CURTAINS`):
+    - Fabric is sold per metre at the variant price and cut to whole widths of the fabric's usable width (1.4 m standard, 2.8 m wide-width).
+    - Making cost is per metre of rail: wave SAR 35, pinch pleat SAR 45, eyelet SAR 25, rod pocket SAR 20.
+    - Lining is priced per metre of fabric; tracks and rods per metre of rail (window width plus 10 cm overhang each side); motors are a flat price; installation is a flat SAR 150.
+52. **Dimension limits**: curtains 30–1200 cm wide and 30–500 cm high, up to 8 panels; blinds 30–300 × 30–350 cm, billed for at least 1 m² of area.
+53. **Abaya tailoring** (template `CUSTOM_ABAYA`): optional on selected abayas. The price is the garment plus a SAR 50 tailoring fee. Measurements are length 120–165 cm, chest 70–160, shoulder 30–60 and sleeve 45–75. Custom abayas are made to order (no stock check, no COD).
+54. **Sofa and majlis covers**: priced per piece (one-seater SAR 250 … three-seater SAR 450; majlis cushion SAR 180, backrest SAR 90, armrest SAR 45), with at least 1 photo, at most 8 photos and 20 pieces (40 for majlis). The advertised starting price is the minimum charge.
+55. **Customer photos** are private, kept with the configuration for production and support, and purged within an hour of their 24-hour window if never attached. Retention after delivery follows the PDPL data-retention policy (Phase 10).
+56. **"Book a measurement visit"** opens WhatsApp with the product pre-filled until the services booking module ships (Phase 6). **Units**: customers enter cm or inches; everything is stored in mm.

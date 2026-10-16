@@ -21,10 +21,11 @@ export default async function ProductEditorPage({ params }: { params: Promise<{ 
     if (err instanceof ApiError && err.status === 404) notFound();
     throw err;
   }
-  const [tree, sizeGuides, locations] = await Promise.all([
+  const [tree, sizeGuides, locations, templates] = await Promise.all([
     adminApi<CategoryNode[]>('/admin/categories', locale),
     adminApi<Array<{ id: string; titleAr: string; titleEn: string | null }>>('/admin/size-guides', locale),
     can(me, 'inventory.read') ? adminApi<Location[]>('/admin/locations', locale) : Promise.resolve([] as Location[]),
+    can(me, 'settings.read') ? adminApi<Array<{ id: string; code: string; kind: string; nameAr: string; nameEn: string; isActive: boolean }>>('/admin/configurator/templates', locale) : Promise.resolve([]),
   ]);
 
   return (
@@ -32,6 +33,7 @@ export default async function ProductEditorPage({ params }: { params: Promise<{ 
       initial={product}
       categories={flattenCategories(tree).map((c) => ({ id: c.id, label: `${'— '.repeat(c.depth)}${locale === 'en' ? c.nameEn || c.nameAr : c.nameAr}` }))}
       sizeGuides={sizeGuides}
+      templates={templates.filter((tpl) => tpl.isActive || tpl.id === product.configuratorTemplateId)}
       locations={locations.filter((l) => l.isActive)}
       permissions={{
         write: can(me, 'catalog.product.write'),

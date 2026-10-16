@@ -43,6 +43,10 @@ export default async function AccountPage({ params }: { params: Promise<{ locale
         {t('account.orders')}
         <ChevronForward />
       </Link>
+      <Link href="/account/measurements" className="mt-3 flex items-center justify-between rounded-card bg-white p-5 font-medium shadow-card hover:text-brand-700">
+        {t('configurator.savedProfiles')}
+        <ChevronForward />
+      </Link>
       <Card className="mt-6 p-6">
         <AccountForm user={user!} />
       </Card>

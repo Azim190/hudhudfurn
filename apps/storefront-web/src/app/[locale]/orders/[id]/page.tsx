@@ -3,6 +3,7 @@ import { Alert, Badge, Card } from '@hudhud/ui';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { ConfigurationSummary } from '@/components/configuration-summary';
 import { Link } from '@/i18n/navigation';
 import { pick } from '@/lib/catalog-types';
 import { isUuid } from '@/lib/order-access';
@@ -84,6 +85,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                       .filter(Boolean)
                       .join(' · ')}
                   </p>
+                  {i.configuration && <ConfigurationSummary configuration={i.configuration} className="text-xs text-ink-500" />}
                   {i.giftMessage && <p className="text-xs text-ink-500">{t('giftMessage', { message: i.giftMessage })}</p>}
                 </div>
                 <span className="shrink-0 text-sm font-semibold">{money(i.total)}</span>

@@ -7,6 +7,7 @@ export const PRODUCT_FULL_INCLUDE = {
   category: { select: { id: true, parentId: true, vertical: true, nameAr: true, nameEn: true, slugAr: true, slugEn: true } },
   brand: { select: { id: true, nameAr: true, nameEn: true, slug: true } },
   sizeGuide: true,
+  configuratorTemplate: { select: { id: true, code: true, kind: true, isActive: true } },
   attributes: { include: { value: { include: { attribute: true } } } },
   variants: {
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
@@ -128,6 +129,7 @@ export class CatalogPresenter {
       vatInclusive: p.vatInclusive,
       sampleAvailable: p.sampleAvailable,
       samplePrice: p.samplePrice,
+      configurator: p.configuratorTemplate?.isActive ? { kind: p.configuratorTemplate.kind, code: p.configuratorTemplate.code } : null,
       photoStyle: p.photoStyle,
       sizeGuide: p.sizeGuide
         ? { titleAr: p.sizeGuide.titleAr, titleEn: p.sizeGuide.titleEn, table: p.sizeGuide.table, howToMeasureAr: p.sizeGuide.howToMeasureAr, howToMeasureEn: p.sizeGuide.howToMeasureEn }

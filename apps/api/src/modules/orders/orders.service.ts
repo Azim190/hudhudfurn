@@ -346,6 +346,7 @@ export class OrdersService {
         giftWrap: i.giftWrap,
         giftWrapTotal: i.giftWrapTotal,
         giftMessage: i.giftMessage,
+        configuration: i.configuration,
         total: i.total,
       })),
       totals: {

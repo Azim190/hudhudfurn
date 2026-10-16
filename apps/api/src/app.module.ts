@@ -14,6 +14,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { CartModule } from './modules/cart/cart.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { CheckoutModule } from './modules/checkout/checkout.module';
+import { ConfiguratorModule } from './modules/configurator/configurator.module';
 import { ContentModule, RevalidationModule } from './modules/content/content.module';
 import { ShopModule } from './modules/shop/shop.module';
 import { InvoicingModule } from './modules/invoicing/invoicing.module';
@@ -76,6 +77,7 @@ import { UsersModule } from './modules/users/users.module';
     InvoicingModule,
     OrdersModule,
     CheckoutModule,
+    ConfiguratorModule,
   ],
   providers: [
     // Order matters: throttle first, then authenticate (AuthModule), then authorise.

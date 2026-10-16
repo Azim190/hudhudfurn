@@ -175,6 +175,7 @@ export class ProductDto extends LocalizedSeoFields {
   @ApiPropertyOptional() @IsOptional() @IsInt() @Min(0) @Max(MONEY_MAX) samplePrice?: number | null;
   @ApiPropertyOptional({ enum: PhotoStyle }) @IsOptional() @IsEnum(PhotoStyle) photoStyle?: PhotoStyle | null;
   @ApiPropertyOptional() @IsOptional() @IsUUID() sizeGuideId?: string | null;
+  @ApiPropertyOptional({ description: 'Made-to-measure configurator template' }) @IsOptional() @IsUUID() configuratorTemplateId?: string | null;
   @ApiPropertyOptional({ type: [String], description: 'Product-level (non-variant) attribute value ids' })
   @IsOptional()
   @IsArray()

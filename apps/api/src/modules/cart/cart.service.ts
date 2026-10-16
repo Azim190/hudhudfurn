@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { priceCart, priceCartLineUnit, type CartLineInput } from '@hudhud/domain';
+import { priceCart, priceCartLineUnit, type CartLineInput, type Quote } from '@hudhud/domain';
 import type { Cart, Prisma } from '@prisma/client';
 import { CryptoService } from '../../core/crypto/crypto.service';
 import { AppError } from '../../core/errors/app-error';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { availableQuantity, CatalogPresenter, PRODUCT_FULL_INCLUDE } from '../catalog/catalog.presenter';
+import { ConfiguratorService } from '../configurator/configurator.service';
 import { MediaService } from '../media/media.service';
 import { SettingsService } from '../settings/settings.service';
 import type { AddCartItemDto, UpdateCartItemDto } from './cart.dto';
@@ -21,6 +22,7 @@ const ITEM_INCLUDE = {
       product: { include: PRODUCT_FULL_INCLUDE },
     },
   },
+  configuration: true,
 } satisfies Prisma.CartItemInclude;
 
 export type CartItemFull = Prisma.CartItemGetPayload<{ include: typeof ITEM_INCLUDE }>;
@@ -40,6 +42,7 @@ export class CartService {
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
     private readonly settings: SettingsService,
+    private readonly configurator: ConfiguratorService,
     media: MediaService,
   ) {
     this.presenter = new CatalogPresenter(media);
@@ -83,6 +86,7 @@ export class CartService {
 
     const isSample = dto.isSample ?? false;
     if (isSample && !product.sampleAvailable) throw AppError.badRequest('sampleUnavailable');
+    if (dto.configuration && !isSample) return this.addConfigured(owner, dto, limits);
     if (!isSample) this.assertMeasurements(product.pricingMode, dto);
     if (dto.giftWrap && !(await this.settings.get('modules.enabled')).giftWrapping) throw AppError.badRequest('validation', { field: 'giftWrap' });
 
@@ -90,6 +94,7 @@ export class CartService {
     const lines = await this.prisma.cartItem.findMany({ where: { cartId: cart.id } });
     const same = lines.find(
       (l) =>
+        !l.configurationId &&
         l.variantId === dto.variantId &&
         l.isSample === isSample &&
         (l.lengthCm ?? null) === (isSample ? null : (dto.lengthCm ?? null)) &&
@@ -123,12 +128,41 @@ export class CartService {
     return { ...(await this.present(cart.id)), ...(newGuestToken ? { cartToken: newGuestToken } : {}) };
   }
 
+  /** A made-to-measure line: price and validate with the configurator, never merge with other lines. */
+  private async addConfigured(owner: CartOwner, dto: AddCartItemDto, limits: { maxLines: number; maxQuantityPerLine: number }) {
+    if (dto.lengthCm || dto.widthMm || dto.heightMm) throw AppError.badRequest('validation', { reason: 'measurementsNotApplicable' });
+    if (dto.quantity > limits.maxQuantityPerLine) throw AppError.badRequest('cartLimit');
+    const variant = await this.prisma.productVariant.findUniqueOrThrow({ where: { id: dto.variantId } });
+    const { cart, newGuestToken } = await this.findOrCreate(owner);
+    if ((await this.prisma.cartItem.count({ where: { cartId: cart.id } })) >= limits.maxLines) throw AppError.badRequest('cartLimit');
+    const configuration = await this.configurator.create(variant.productId, variant.id, dto.configuration!.inputs, owner.userId);
+    await this.prisma.cartItem.create({
+      data: {
+        cartId: cart.id,
+        variantId: variant.id,
+        quantity: dto.quantity,
+        configurationId: configuration.id,
+        giftWrap: dto.giftWrap ?? false,
+        giftMessage: dto.giftWrap ? dto.giftMessage?.trim() || null : null,
+      },
+    });
+    await this.touch(cart.id);
+    return { ...(await this.present(cart.id)), ...(newGuestToken ? { cartToken: newGuestToken } : {}) };
+  }
+
+  /** Current configurator prices for configured lines (null when a configuration no longer quotes). */
+  async configuredQuotes(items: CartItemFull[]): Promise<Map<string, Quote | null>> {
+    const configs = items.map((i) => i.configuration).filter((c): c is NonNullable<CartItemFull['configuration']> => Boolean(c));
+    const byConfig = await this.configurator.requote(configs);
+    return new Map(items.filter((i) => i.configuration).map((i) => [i.id, byConfig.get(i.configurationId!) ?? null]));
+  }
+
   async updateItem(owner: CartOwner, itemId: string, dto: UpdateCartItemDto) {
     const { cart, item } = await this.ownedItem(owner, itemId);
     if (dto.quantity !== undefined) {
       const limits = await this.settings.get('cart.limits');
       if (dto.quantity > (item.isSample ? 3 : limits.maxQuantityPerLine)) throw AppError.badRequest('cartLimit');
-      if (!item.isSample) this.assertStock(item.variant.product.isMadeToMeasure, availableQuantity(item.variant), dto.quantity);
+      if (!item.isSample) this.assertStock(item.variant.product.isMadeToMeasure || Boolean(item.configurationId), availableQuantity(item.variant), dto.quantity);
     }
     if (dto.giftWrap && !(await this.settings.get('modules.enabled')).giftWrapping) throw AppError.badRequest('validation', { field: 'giftWrap' });
     const giftWrap = dto.giftWrap ?? item.giftWrap;
@@ -163,10 +197,12 @@ export class CartService {
     ]);
     await this.prisma.$transaction(async (tx) => {
       for (const g of guestItems) {
-        const match = userItems.find(
-          (u) => u.variantId === g.variantId && u.isSample === g.isSample && u.lengthCm === g.lengthCm && u.widthMm === g.widthMm && u.heightMm === g.heightMm && u.giftWrap === g.giftWrap,
+        const match = g.configurationId
+          ? undefined
+          : userItems.find(
+          (u) => !u.configurationId && u.variantId === g.variantId && u.isSample === g.isSample && u.lengthCm === g.lengthCm && u.widthMm === g.widthMm && u.heightMm === g.heightMm && u.giftWrap === g.giftWrap,
         );
-        const cap = g.isSample ? 3 : g.variant.product.isMadeToMeasure ? limits.maxQuantityPerLine : Math.min(limits.maxQuantityPerLine, Math.max(1, availableQuantity(g.variant)));
+        const cap = g.isSample ? 3 : g.variant.product.isMadeToMeasure || g.configurationId ? limits.maxQuantityPerLine : Math.min(limits.maxQuantityPerLine, Math.max(1, availableQuantity(g.variant)));
         if (match) await tx.cartItem.update({ where: { id: match.id }, data: { quantity: Math.min(cap, match.quantity + g.quantity) } });
         else await tx.cartItem.update({ where: { id: g.id }, data: { cartId: cart.id, quantity: Math.min(cap, g.quantity) } });
       }
@@ -188,9 +224,10 @@ export class CartService {
     const items = await this.prisma.cartItem.findMany({ where: { cartId }, include: ITEM_INCLUDE, orderBy: { createdAt: 'asc' } });
     const [vat, wrap, modules] = await Promise.all([this.settings.get('tax.vat'), this.settings.get('cart.giftWrap'), this.settings.get('modules.enabled')]);
 
+    const quotes = await this.configuredQuotes(items);
     const issues = new Map<string, { issue: LineIssue; available?: number }>();
     for (const item of items) {
-      const issue = this.issueOf(item);
+      const issue = this.issueOf(item, quotes);
       if (issue) issues.set(item.id, issue);
     }
     const candidates = items.filter((i) => !issues.has(i.id) || issues.get(i.id)!.issue === 'insufficientStock');
@@ -205,6 +242,7 @@ export class CartService {
       isSample: i.isSample,
       samplePrice: i.variant.product.samplePrice,
       giftWrap: i.giftWrap,
+      configuredPrice: quotes.get(i.id)?.total ?? null,
     }));
 
     // A line that cannot be priced (e.g. measurements missing after a product changed mode) is flagged, not fatal.
@@ -238,11 +276,12 @@ export class CartService {
           heightMm: i.heightMm,
           giftWrap: i.giftWrap,
           giftMessage: i.giftMessage,
+          configuration: i.configuration ? this.configurationView(i.configuration, quotes.get(i.id) ?? null) : null,
           unitPrice: p?.unitPrice ?? null,
           billedMeasure: p?.billedMeasure ?? null,
           giftWrapTotal: p?.giftWrap ?? 0,
           lineTotal: p?.total ?? null,
-          maxQuantity: i.isSample ? 3 : i.variant.product.isMadeToMeasure ? 20 : Math.min(20, availableQuantity(i.variant)),
+          maxQuantity: i.isSample ? 3 : i.variant.product.isMadeToMeasure || i.configurationId ? 20 : Math.min(20, availableQuantity(i.variant)),
           issue: issues.get(i.id)?.issue ?? null,
           available: issues.get(i.id)?.available,
         };
@@ -259,12 +298,25 @@ export class CartService {
     const cart = await this.find(owner);
     if (!cart) return null;
     const items = await this.prisma.cartItem.findMany({ where: { cartId: cart.id }, include: ITEM_INCLUDE, orderBy: { createdAt: 'asc' } });
-    return { cart, items: items.map((item) => ({ item, issue: this.issueOf(item) })) };
+    const quotes = await this.configuredQuotes(items);
+    return { cart, quotes, items: items.map((item) => ({ item, issue: this.issueOf(item, quotes) })) };
   }
 
   /** Card view of a product (name, image) for order snapshots. */
   card(item: CartItemFull) {
     return this.presenter.card(item.variant.product);
+  }
+
+  /** Short configuration summary for cart and checkout lines. */
+  configurationView(c: NonNullable<CartItemFull['configuration']>, quote: Quote | null) {
+    const specs = (quote?.specs ?? (c.computed as { specs?: Quote['specs'] }).specs ?? {}) as Quote['specs'];
+    return {
+      id: c.id,
+      kind: String(specs.kind ?? ''),
+      specs,
+      choices: quote?.choices ?? [],
+      lines: (quote?.lines ?? []).map((l) => ({ key: l.key, nameAr: l.nameAr, nameEn: l.nameEn, quantity: l.quantity, unit: l.unit, amount: l.amount })),
+    };
   }
 
   /** Remove abandoned guest carts (scheduled job in a later phase; callable from ops tooling). */
@@ -274,10 +326,12 @@ export class CartService {
     return count;
   }
 
-  private issueOf(item: CartItemFull): { issue: LineIssue; available?: number } | null {
+  issueOf(item: CartItemFull, quotes: Map<string, Quote | null> = new Map()): { issue: LineIssue; available?: number } | null {
     const product = item.variant.product;
     if (!item.variant.isActive || product.status !== 'ACTIVE' || product.deletedAt) return { issue: 'productUnavailable' };
     if (item.isSample) return product.sampleAvailable ? null : { issue: 'sampleUnavailable' };
+    // Configured lines are made to order: no stock check, but the configuration must still price.
+    if (item.configurationId) return quotes.get(item.id) ? null : { issue: 'configurationRequired' };
     if (product.pricingMode === 'CALCULATED') return { issue: 'configurationRequired' };
     if (product.isMadeToMeasure) return null;
     const available = availableQuantity(item.variant);
