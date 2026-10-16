@@ -136,7 +136,7 @@ export class ConfiguratorService {
           variantId,
           userId,
           inputs: { ...inputs, photoIds } as unknown as Prisma.InputJsonValue,
-          computed: { lines: quote.lines, specs: quote.specs } as unknown as Prisma.InputJsonValue,
+          computed: { lines: quote.lines, specs: quote.specs, choices: quote.choices } as unknown as Prisma.InputJsonValue,
           total: quote.total,
         },
       });
@@ -173,6 +173,12 @@ export class ConfiguratorService {
     return { configurationId: c.id, templateCode: t.code, kind: t.kind, templateVersion: Number(quote.specs.templateVersion ?? c.templateVersion), inputs: c.inputs as ConfigurationInputs, specs: quote.specs, choices: quote.choices, lines: quote.lines };
   }
 
+  /** Snapshot from the stored (locked) quote of a configuration, e.g. for an accepted quotation. */
+  async snapshotFromSaved(c: SavedConfiguration): Promise<ConfigurationSnapshot> {
+    const computed = c.computed as { lines?: Quote['lines']; specs?: Quote['specs']; choices?: Quote['choices'] };
+    return this.snapshot(c, { valid: true, issues: [], total: c.total, lines: computed.lines ?? [], specs: computed.specs ?? {}, choices: computed.choices ?? [] });
+  }
+
   // ───── Customer uploads (private) ─────
 
   /** Validate by decoding, auto-rotate, strip metadata (incl. GPS), cap size, store privately. */
@@ -181,7 +187,7 @@ export class ConfiguratorService {
     if (file.size > MAX_UPLOAD_BYTES) throw AppError.badRequest('validation', { field: 'file', reason: 'tooLarge', maxMb: 10 });
     let image: { data: Buffer; info: sharp.OutputInfo };
     try {
-      image = await sharp(file.buffer, { limitInputPixels: 50_000_000 }).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer({ resolveWithObject: true });
+      image = await sharp(file.buffer, { limitInputPixels: 50_000_000 }).rotate().resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }).flatten({ background: '#ffffff' }).jpeg({ quality: 82 }).toBuffer({ resolveWithObject: true });
     } catch {
       throw AppError.badRequest('validation', { field: 'file', reason: 'notAnImage' });
     }

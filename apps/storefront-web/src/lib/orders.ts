@@ -51,6 +51,10 @@ export interface OrderView {
   payment: { status: string; provider: string; sourceSummary: string | null; failureReason: string | null } | null;
   canRetryPayment: boolean;
   canCancel: boolean;
+  booking: { id: string; number: string; status: string } | null;
+  quotationNumber: string | null;
+  installationBookings: Array<{ id: string; number: string; status: string }>;
+  canBookInstallation: boolean;
 }
 
 export interface InvoiceView {

@@ -164,26 +164,42 @@ Order lines of configured items carry `configuration`: template code and version
 | GET | /payments/:orderNumber/status | G/C | Poll after redirect |
 | POST | /samples/orders | G/C | Fabric swatch sample order |
 
-## Services
+## Services: as implemented in Phase 6
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
-| GET | /services/areas | P | Covered cities and districts |
-| GET | /services/slots?district=&type=&from= | P | Available slots |
-| POST | /services/bookings | C | Book a measurement or installation |
-| PATCH | /services/bookings/:id | C | Reschedule or cancel |
-| GET | /quotations/:number | C | View a technician quotation |
-| POST | /quotations/:number/approve | C | Approve → order + payment session |
+| GET | /services/availability?cityCode=&districtId=&type=&orderId= | Public | Covering area, visit fee (free installation above the threshold) and free slots per day |
+| POST | /services/bookings | Customer, `Idempotency-Key` | Book a MEASUREMENT or INSTALLATION visit (saved or new address, map pin, notes). A fee opens a payment session and the slot is held until it is paid |
+| GET | /services/bookings, /services/bookings/:id | Customer | My visits; the single read adds `canChange` |
+| POST | /services/bookings/:id/reschedule, /services/bookings/:id/cancel | Customer | Up to 24 h before the visit; cancelling refunds a paid fee |
+| GET | /quotations, /quotations/:number | Customer | Quotations with lines, configuration details, visit credit and payment methods |
+| POST | /quotations/:number/accept | Customer | `{ paymentMethod }` → prepaid order and payment page, in the request language |
 
-## Technician (T)
+## Technician (`services.technician`): as implemented in Phase 6
 | Method | Path | Purpose |
 |---|---|---|
-| GET | /technician/jobs?date= | Daily job list |
-| GET | /technician/jobs/:id | Job detail (masked phone, map link) |
-| POST | /technician/jobs/:id/status | EN_ROUTE / IN_PROGRESS / COMPLETED / NO_SHOW |
-| POST | /technician/jobs/:id/measurements | Record a window/room with photos |
-| POST | /technician/jobs/:id/signature | Customer signature |
-| POST | /technician/jobs/:id/quotation | Generate a quotation from measurements |
-| POST | /technician/jobs/:id/call | Masked-call bridge (optional) |
+| GET | /technician/jobs?date= | Own visits for a day (Riyadh time) |
+| GET | /technician/jobs/:id | Detail: address, navigation link, phone (masked until the visit day), measurements, quotations |
+| POST | /technician/jobs/:id/status | EN_ROUTE, IN_PROGRESS, COMPLETED (needs a signature, plus measurements for a measurement visit), NO_SHOW |
+| POST | /technician/uploads | Window photo (private, re-encoded) |
+| POST, PATCH | /technician/jobs/:id/measurements[/:measurementId] | Room or window, width and height in mm, mounting, notes, photos. Only while on the way or in progress |
+| POST | /technician/jobs/:id/measurements/:measurementId/delete | Remove a measurement |
+| POST | /technician/jobs/:id/signature | Customer signature (PNG/JPEG data URL) |
+| GET | /technician/catalog | Curtain and blind products to quote |
+| POST | /technician/jobs/:id/quotation | Price measured windows with the configurator and send the quotation by SMS |
+
+## Admin services (`/admin/services`): as implemented in Phase 6
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| GET, POST, PATCH | areas[/:id] | services.read / services.manage | City, districts (empty = whole city), visit types, measurement and installation fees, free installation threshold |
+| POST | areas/:id/slots/generate | services.manage | Date range, weekdays, time windows, capacity. Existing slots are skipped |
+| GET, PATCH | areas/:id/slots, slots/:id | services.read / services.manage | Capacity (never below booked), open/close |
+| GET | bookings, bookings/:id | services.read | Filter by dates, status, area, technician and text |
+| POST | bookings/:id/assign, bookings/:id/cancel | services.assign | The technician must cover the area; cancelling refunds the fee |
+| POST | bookings/:id/quotation | services.manage | Office-created quotation |
+| GET | quotations/:number, uploads/:id | services.read | Quotation, measurement photo or signature |
+| GET, PUT | technicians, technicians/:userId | services.read / services.manage | Staff with the Technician role: phone, areas, availability |
+
+Lifecycle: REQUESTED (fee unpaid) → CONFIRMED → ASSIGNED → EN_ROUTE → IN_PROGRESS → COMPLETED, or CANCELLED / NO_SHOW. SMS goes out in the booking's language on confirmation, assignment, the technician setting off, cancellation and a new quotation. Development only: `GET /dev/sms?to=` (console SMS outbox).
 
 ## Webhooks (W)
 | Method | Path |

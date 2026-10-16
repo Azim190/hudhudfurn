@@ -23,6 +23,9 @@ export const ORDER_DETAIL_INCLUDE = {
   refunds: { orderBy: { createdAt: 'desc' } },
   invoices: { orderBy: { icv: 'asc' }, select: { id: true, kind: true, number: true, issuedAt: true, total: true, zatcaStatus: true } },
   pickupLocation: { select: { id: true, code: true, nameAr: true, nameEn: true } },
+  bookingFor: { select: { id: true, number: true, status: true } },
+  quotation: { select: { number: true } },
+  installationBookings: { where: { status: { notIn: ['CANCELLED'] } }, select: { id: true, number: true, status: true } },
 } satisfies Prisma.OrderInclude;
 
 type OrderDetail = Prisma.OrderGetPayload<{ include: typeof ORDER_DETAIL_INCLUDE }>;
@@ -37,6 +40,8 @@ export interface OrderViewer {
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
   private readonly accessKey: Buffer;
+  private readonly paidListeners: Array<(orderId: string) => Promise<void>> = [];
+  private readonly cancelledListeners: Array<(orderId: string) => Promise<void>> = [];
 
   constructor(
     private readonly prisma: PrismaService,
@@ -49,6 +54,19 @@ export class OrdersService {
     config: AppConfig,
   ) {
     this.accessKey = createHmac('sha256', Buffer.from(config.get('ENCRYPTION_KEY'), 'base64')).update('order-access-token').digest();
+  }
+
+  /** Other modules react to payment and cancellation (e.g. a visit fee confirms its booking). */
+  onPaid(listener: (orderId: string) => Promise<void>) {
+    this.paidListeners.push(listener);
+  }
+
+  onCancelled(listener: (orderId: string) => Promise<void>) {
+    this.cancelledListeners.push(listener);
+  }
+
+  private async emit(listeners: Array<(orderId: string) => Promise<void>>, orderId: string) {
+    for (const l of listeners) await l(orderId).catch((err) => this.logger.error({ err, orderId }, 'Order listener failed'));
   }
 
   // ───── Guest access ─────
@@ -103,6 +121,7 @@ export class OrdersService {
     if (outcome === 'paid') {
       await this.issueInvoice(payment.orderId);
       await this.syncProducts(payment.orderId);
+      await this.emit(this.paidListeners, payment.orderId);
     } else if (outcome === 'cancelled') {
       // Paid after the order had already expired: give the money back.
       this.logger.warn({ orderId: payment.orderId, paymentId }, 'Payment captured for a cancelled order; refunding');
@@ -161,6 +180,7 @@ export class OrdersService {
     }
     if (order.paymentState === 'PAID') await this.issueCreditNote(orderId, input.reason);
     if (touched.length) await this.syncProducts(orderId);
+    await this.emit(this.cancelledListeners, orderId);
     return this.prisma.order.findUniqueOrThrow({ where: { id: orderId }, include: ORDER_DETAIL_INCLUDE });
   }
 
@@ -369,6 +389,14 @@ export class OrdersService {
       payment: payment ? { status: payment.status, provider: payment.provider, sourceSummary: payment.sourceSummary, failureReason: payment.failureReason } : null,
       canRetryPayment: order.status === 'NEW' && order.paymentState === 'UNPAID' && order.paymentMethod !== 'COD' && (!order.expiresAt || order.expiresAt > new Date()),
       canCancel: ['NEW', 'PAID', 'CONFIRMED'].includes(order.status),
+      booking: order.bookingFor,
+      quotationNumber: order.quotation?.number ?? null,
+      installationBookings: order.installationBookings,
+      // Made-to-measure orders with installation can be given a visit date once paid.
+      canBookInstallation:
+        ['PAID', 'CONFIRMED', 'IN_PRODUCTION', 'READY', 'DELIVERED'].includes(order.status) &&
+        order.installationBookings.length === 0 &&
+        order.items.some((i) => (i.configuration as { choices?: Array<{ group: string; code: string }> } | null)?.choices?.some((c) => c.group === 'INSTALLATION' && c.code !== 'NONE')),
     };
   }
 }

@@ -45,3 +45,8 @@ export async function adminApi<T>(path: string, locale: Locale, init: Omit<ApiRe
 export function can(me: AdminMe, permission: string): boolean {
   return me.permissions.includes(permission);
 }
+
+/** Field-app API call (`/technician/*`) for the signed-in technician. */
+export async function technicianApi<T>(path: string, locale: Locale): Promise<T> {
+  return apiFetch<T>(path, { token: await accessToken(), locale });
+}

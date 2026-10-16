@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AppConfig } from '../../core/config/app-config.service';
+import { DevOutboxController } from './dev-outbox.controller';
 import { ConsoleSmsProvider, UnifonicSmsProvider } from './providers';
 import { SMS_PROVIDER } from './sms.port';
 
 @Module({
+  controllers: [DevOutboxController],
   providers: [
     ConsoleSmsProvider,
     UnifonicSmsProvider,

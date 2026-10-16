@@ -423,12 +423,20 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
             )}
           </Alert>
         )}
-        {visitHref && kind !== 'ABAYA' && (
+        {kind !== 'ABAYA' && (
           <p className="text-sm text-ink-700">
             {t('bookVisitPrompt')}{' '}
-            <a href={visitHref} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-700 hover:underline">
+            <Link href={`/services/book?product=${productId}`} className="font-medium text-brand-700 hover:underline">
               {t('bookVisit')}
-            </a>
+            </Link>
+            {visitHref && (
+              <>
+                {' · '}
+                <a href={visitHref} target="_blank" rel="noopener noreferrer" className="text-success-600 hover:underline">
+                  WhatsApp
+                </a>
+              </>
+            )}
           </p>
         )}
       </Card>

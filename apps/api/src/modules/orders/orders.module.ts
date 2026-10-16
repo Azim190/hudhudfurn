@@ -10,6 +10,7 @@ import { MyOrdersController, OrdersController } from './orders.controller';
 import { OrdersProcessor } from './orders.processor';
 import { OrdersService } from './orders.service';
 import { PaymentsController } from './payments.controller';
+import { ServiceOrderWriter } from './service-order.writer';
 import { StockLedger } from './stock-ledger';
 
 const workersEnabled = process.env.WORKERS_ENABLED !== 'false';
@@ -17,7 +18,7 @@ const workersEnabled = process.env.WORKERS_ENABLED !== 'false';
 @Module({
   imports: [ConfiguratorModule, InvoicingModule, PaymentsModule, PromotionsModule, SearchModule],
   controllers: [OrdersController, MyOrdersController, PaymentsController, AdminOrdersController],
-  providers: [OrdersService, OrderPaymentsService, StockLedger, ...(workersEnabled ? [OrdersProcessor] : [])],
-  exports: [OrdersService, OrderPaymentsService, StockLedger],
+  providers: [OrdersService, OrderPaymentsService, StockLedger, ServiceOrderWriter, ...(workersEnabled ? [OrdersProcessor] : [])],
+  exports: [OrdersService, OrderPaymentsService, StockLedger, ServiceOrderWriter],
 })
 export class OrdersModule {}

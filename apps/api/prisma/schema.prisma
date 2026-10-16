@@ -66,6 +66,8 @@ model User {
   reviews             Review[]
   orders              Order[]
   measurementProfiles MeasurementProfile[]
+  bookings            Booking[]
+  technicianProfile   TechnicianProfile?
 
   @@index([kind, status])
   @@map("users")
@@ -174,27 +176,29 @@ model OtpChallenge {
 // ─────────────────────────────── Geography & addresses ───────────────────────────────
 
 model City {
-  id         String     @id @default(uuid()) @db.Uuid
-  code       String     @unique
-  nameAr     String     @map("name_ar")
-  nameEn     String     @map("name_en")
-  regionCode String     @map("region_code")
-  codAllowed Boolean    @default(true) @map("cod_allowed")
-  isActive   Boolean    @default(true) @map("is_active")
-  sortOrder  Int        @default(0) @map("sort_order")
-  districts  District[]
-  addresses  Address[]
+  id           String        @id @default(uuid()) @db.Uuid
+  code         String        @unique
+  nameAr       String        @map("name_ar")
+  nameEn       String        @map("name_en")
+  regionCode   String        @map("region_code")
+  codAllowed   Boolean       @default(true) @map("cod_allowed")
+  isActive     Boolean       @default(true) @map("is_active")
+  sortOrder    Int           @default(0) @map("sort_order")
+  districts    District[]
+  addresses    Address[]
+  serviceAreas ServiceArea[]
 
   @@map("cities")
 }
 
 model District {
-  id        String    @id @default(uuid()) @db.Uuid
-  cityId    String    @map("city_id") @db.Uuid
-  nameAr    String    @map("name_ar")
-  nameEn    String    @map("name_en")
-  city      City      @relation(fields: [cityId], references: [id], onDelete: Cascade)
-  addresses Address[]
+  id           String                @id @default(uuid()) @db.Uuid
+  cityId       String                @map("city_id") @db.Uuid
+  nameAr       String                @map("name_ar")
+  nameEn       String                @map("name_en")
+  city         City                  @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  addresses    Address[]
+  serviceAreas ServiceAreaDistrict[]
 
   @@unique([cityId, nameAr])
   @@map("districts")
@@ -1101,65 +1105,68 @@ enum OrderPaymentState {
 
 /// Orders keep full snapshots (prices, names, address) so later catalog edits never change them.
 model Order {
-  id               String                @id @default(uuid()) @db.Uuid
+  id                   String                @id @default(uuid()) @db.Uuid
   /// HD-2026-000123
-  number           String                @unique
-  userId           String?               @map("user_id") @db.Uuid
-  locale           Locale                @default(ar)
-  contactName      String                @map("contact_name")
-  contactPhoneE164 String                @map("contact_phone_e164")
-  contactEmail     String?               @map("contact_email")
-  status           OrderStatus           @default(NEW)
-  paymentMethod    PaymentMethod         @map("payment_method")
-  paymentState     OrderPaymentState     @default(UNPAID) @map("payment_state")
-  fulfillment      FulfillmentType
+  number               String                @unique
+  userId               String?               @map("user_id") @db.Uuid
+  locale               Locale                @default(ar)
+  contactName          String                @map("contact_name")
+  contactPhoneE164     String                @map("contact_phone_e164")
+  contactEmail         String?               @map("contact_email")
+  status               OrderStatus           @default(NEW)
+  paymentMethod        PaymentMethod         @map("payment_method")
+  paymentState         OrderPaymentState     @default(UNPAID) @map("payment_state")
+  fulfillment          FulfillmentType
   /// { recipientName, phoneE164, cityCode, cityNameAr, cityNameEn, district, street, buildingNo, additionalNo, postalCode, shortAddress }
-  shippingAddress  Json?                 @map("shipping_address")
-  cityCode         String?               @map("city_code")
-  shippingRateId   String?               @map("shipping_rate_id") @db.Uuid
-  shippingCarrier  String?               @map("shipping_carrier")
-  shippingMethod   String?               @map("shipping_method")
-  shippingNameAr   String?               @map("shipping_name_ar")
-  shippingNameEn   String?               @map("shipping_name_en")
-  pickupLocationId String?               @map("pickup_location_id") @db.Uuid
-  etaMinDays       Int?                  @map("eta_min_days")
-  etaMaxDays       Int?                  @map("eta_max_days")
-  currency         String                @default("SAR")
-  vatRateBp        Int                   @map("vat_rate_bp")
-  pricesIncludeVat Boolean               @map("prices_include_vat")
+  shippingAddress      Json?                 @map("shipping_address")
+  cityCode             String?               @map("city_code")
+  shippingRateId       String?               @map("shipping_rate_id") @db.Uuid
+  shippingCarrier      String?               @map("shipping_carrier")
+  shippingMethod       String?               @map("shipping_method")
+  shippingNameAr       String?               @map("shipping_name_ar")
+  shippingNameEn       String?               @map("shipping_name_en")
+  pickupLocationId     String?               @map("pickup_location_id") @db.Uuid
+  etaMinDays           Int?                  @map("eta_min_days")
+  etaMaxDays           Int?                  @map("eta_max_days")
+  currency             String                @default("SAR")
+  vatRateBp            Int                   @map("vat_rate_bp")
+  pricesIncludeVat     Boolean               @map("prices_include_vat")
   /// All amounts in halalas.
-  subtotal         Int
-  discount         Int                   @default(0)
-  giftWrapTotal    Int                   @default(0) @map("gift_wrap_total")
-  shippingTotal    Int                   @default(0) @map("shipping_total")
-  codFee           Int                   @default(0) @map("cod_fee")
-  net              Int
-  vat              Int
-  total            Int
-  refundedTotal    Int                   @default(0) @map("refunded_total")
-  couponCode       String?               @map("coupon_code")
+  subtotal             Int
+  discount             Int                   @default(0)
+  giftWrapTotal        Int                   @default(0) @map("gift_wrap_total")
+  shippingTotal        Int                   @default(0) @map("shipping_total")
+  codFee               Int                   @default(0) @map("cod_fee")
+  net                  Int
+  vat                  Int
+  total                Int
+  refundedTotal        Int                   @default(0) @map("refunded_total")
+  couponCode           String?               @map("coupon_code")
   /// { promotions: [{ id, code, type, nameAr, nameEn, discount }], vatBreakdown, shipping: {net,vat}, codFee: {net,vat} }
-  pricing          Json                  @default("{}")
-  customerNote     String?               @map("customer_note")
-  cartId           String?               @map("cart_id") @db.Uuid
+  pricing              Json                  @default("{}")
+  customerNote         String?               @map("customer_note")
+  cartId               String?               @map("cart_id") @db.Uuid
   /// Unpaid prepaid orders are cancelled and their stock released after this time.
-  expiresAt        DateTime?             @map("expires_at") @db.Timestamptz(3)
-  placedAt         DateTime              @default(now()) @map("placed_at") @db.Timestamptz(3)
-  paidAt           DateTime?             @map("paid_at") @db.Timestamptz(3)
-  deliveredAt      DateTime?             @map("delivered_at") @db.Timestamptz(3)
-  cancelledAt      DateTime?             @map("cancelled_at") @db.Timestamptz(3)
-  cancelReason     String?               @map("cancel_reason")
-  createdAt        DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user             User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
-  pickupLocation   Location?             @relation(fields: [pickupLocationId], references: [id], onDelete: Restrict)
-  items            OrderItem[]
-  events           OrderStatusEvent[]
-  payments         Payment[]
-  refunds          Refund[]
-  invoices         TaxInvoice[]
-  reservations     StockReservation[]
-  redemptions      PromotionRedemption[]
+  expiresAt            DateTime?             @map("expires_at") @db.Timestamptz(3)
+  placedAt             DateTime              @default(now()) @map("placed_at") @db.Timestamptz(3)
+  paidAt               DateTime?             @map("paid_at") @db.Timestamptz(3)
+  deliveredAt          DateTime?             @map("delivered_at") @db.Timestamptz(3)
+  cancelledAt          DateTime?             @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason         String?               @map("cancel_reason")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user                 User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  pickupLocation       Location?             @relation(fields: [pickupLocationId], references: [id], onDelete: Restrict)
+  items                OrderItem[]
+  events               OrderStatusEvent[]
+  payments             Payment[]
+  refunds              Refund[]
+  invoices             TaxInvoice[]
+  reservations         StockReservation[]
+  redemptions          PromotionRedemption[]
+  installationBookings Booking[]             @relation("InstallationBookings")
+  bookingFor           Booking?              @relation("BookingFee")
+  quotation            Quotation?
 
   @@index([userId, placedAt])
   @@index([status, placedAt])
@@ -1515,6 +1522,7 @@ model SavedConfiguration {
   template        ConfiguratorTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
   cartItems       CartItem[]
   uploads         CustomerUpload[]
+  quotationLines  QuotationLine[]
 
   @@index([userId])
   @@map("saved_configurations")
@@ -1547,8 +1555,240 @@ model CustomerUpload {
   configurationId String?             @map("configuration_id") @db.Uuid
   createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   configuration   SavedConfiguration? @relation(fields: [configurationId], references: [id], onDelete: SetNull)
+  measurementId   String?             @map("measurement_id") @db.Uuid
+  measurement     MeasurementRecord?  @relation(fields: [measurementId], references: [id], onDelete: SetNull)
 
   @@index([configurationId])
   @@index([createdAt])
   @@map("customer_uploads")
+}
+
+// ─────────────────────────────── Services: measurement & installation visits ───────────────────────────────
+
+enum BookingType {
+  MEASUREMENT
+  INSTALLATION
+}
+
+enum BookingStatus {
+  REQUESTED
+  CONFIRMED
+  ASSIGNED
+  EN_ROUTE
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+/// A city (optionally limited to some districts) where technicians visit, with its visit fees.
+model ServiceArea {
+  id                    String                @id @default(uuid()) @db.Uuid
+  code                  String                @unique
+  nameAr                String                @map("name_ar")
+  nameEn                String                @map("name_en")
+  cityId                String                @map("city_id") @db.Uuid
+  types                 BookingType[]
+  /// Halalas.
+  measurementFee        Int                   @map("measurement_fee")
+  installationFee       Int                   @map("installation_fee")
+  freeInstallationAbove Int?                  @map("free_installation_above")
+  isActive              Boolean               @default(true) @map("is_active")
+  createdAt             DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  city                  City                  @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  /// Empty means the whole city.
+  districts             ServiceAreaDistrict[]
+  slots                 TimeSlot[]
+  technicians           TechnicianArea[]
+  bookings              Booking[]
+
+  @@map("service_areas")
+}
+
+model ServiceAreaDistrict {
+  areaId     String      @map("area_id") @db.Uuid
+  districtId String      @map("district_id") @db.Uuid
+  area       ServiceArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  district   District    @relation(fields: [districtId], references: [id], onDelete: Cascade)
+
+  @@id([areaId, districtId])
+  @@map("service_area_districts")
+}
+
+/// A visit window with a capacity; `booked` is changed with conditional updates only.
+model TimeSlot {
+  id        String      @id @default(uuid()) @db.Uuid
+  areaId    String      @map("area_id") @db.Uuid
+  /// Riyadh-local date and times ("09:00").
+  date      DateTime    @db.Date
+  startTime String      @map("start_time")
+  endTime   String      @map("end_time")
+  capacity  Int
+  booked    Int         @default(0)
+  isActive  Boolean     @default(true) @map("is_active")
+  area      ServiceArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  @@unique([areaId, date, startTime])
+  @@index([areaId, date])
+  @@map("time_slots")
+}
+
+/// A staff member who visits customers (role "technician").
+model TechnicianProfile {
+  userId    String           @id @map("user_id") @db.Uuid
+  phoneE164 String?          @map("phone_e164")
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  areas     TechnicianArea[]
+  bookings  Booking[]
+
+  @@map("technician_profiles")
+}
+
+model TechnicianArea {
+  technicianId String            @map("technician_id") @db.Uuid
+  areaId       String            @map("area_id") @db.Uuid
+  technician   TechnicianProfile @relation(fields: [technicianId], references: [userId], onDelete: Cascade)
+  area         ServiceArea       @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@id([technicianId, areaId])
+  @@map("technician_areas")
+}
+
+model Booking {
+  id                String              @id @default(uuid()) @db.Uuid
+  /// BK-2026-000123
+  number            String              @unique
+  userId            String              @map("user_id") @db.Uuid
+  type              BookingType
+  status            BookingStatus       @default(REQUESTED)
+  areaId            String              @map("area_id") @db.Uuid
+  slotId            String              @map("slot_id") @db.Uuid
+  technicianId      String?             @map("technician_id") @db.Uuid
+  /// Installation visits belong to an order.
+  orderId           String?             @map("order_id") @db.Uuid
+  /// Paid visit fee: an order with one service line (invoiced and refundable like any order).
+  feeOrderId        String?             @unique @map("fee_order_id") @db.Uuid
+  fee               Int                 @default(0)
+  locale            Locale              @default(ar)
+  contactName       String              @map("contact_name")
+  contactPhoneE164  String              @map("contact_phone_e164")
+  /// { recipientName, phoneE164, cityCode, cityNameAr, cityNameEn, district, street, buildingNo, postalCode, shortAddress }
+  address           Json
+  lat               Decimal?            @db.Decimal(9, 6)
+  lng               Decimal?            @db.Decimal(9, 6)
+  notes             String?
+  /// Product the customer was looking at when booking (helps the technician bring samples).
+  productId         String?             @map("product_id") @db.Uuid
+  signatureUploadId String?             @unique @map("signature_upload_id") @db.Uuid
+  completedAt       DateTime?           @map("completed_at") @db.Timestamptz(3)
+  cancelledAt       DateTime?           @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason      String?             @map("cancel_reason")
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+  area              ServiceArea         @relation(fields: [areaId], references: [id], onDelete: Restrict)
+  slot              TimeSlot            @relation(fields: [slotId], references: [id], onDelete: Restrict)
+  technician        TechnicianProfile?  @relation(fields: [technicianId], references: [userId], onDelete: SetNull)
+  order             Order?              @relation("InstallationBookings", fields: [orderId], references: [id], onDelete: SetNull)
+  feeOrder          Order?              @relation("BookingFee", fields: [feeOrderId], references: [id], onDelete: SetNull)
+  events            BookingEvent[]
+  measurements      MeasurementRecord[]
+  quotations        Quotation[]
+
+  @@index([userId, createdAt])
+  @@index([technicianId, status])
+  @@index([slotId])
+  @@map("bookings")
+}
+
+model BookingEvent {
+  id         String         @id @default(uuid()) @db.Uuid
+  bookingId  String         @map("booking_id") @db.Uuid
+  fromStatus BookingStatus? @map("from_status")
+  toStatus   BookingStatus  @map("to_status")
+  actorId    String?        @map("actor_id") @db.Uuid
+  note       String?
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  booking    Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId, createdAt])
+  @@map("booking_events")
+}
+
+/// One window or opening measured on site.
+model MeasurementRecord {
+  id        String           @id @default(uuid()) @db.Uuid
+  bookingId String           @map("booking_id") @db.Uuid
+  roomLabel String           @map("room_label")
+  widthMm   Int              @map("width_mm")
+  heightMm  Int              @map("height_mm")
+  /// WALL | CEILING | RECESS
+  mounting  String
+  notes     String?
+  sortOrder Int              @default(0) @map("sort_order")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  booking   Booking          @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  photos    CustomerUpload[]
+
+  @@index([bookingId])
+  @@map("measurement_records")
+}
+
+model Quotation {
+  id          String          @id @default(uuid()) @db.Uuid
+  /// QT-2026-000123
+  number      String          @unique
+  bookingId   String          @map("booking_id") @db.Uuid
+  userId      String          @map("user_id") @db.Uuid
+  status      QuotationStatus @default(DRAFT)
+  validUntil  DateTime        @map("valid_until") @db.Timestamptz(3)
+  subtotal    Int
+  /// Measurement-visit fee credited against the quotation.
+  credit      Int             @default(0)
+  total       Int
+  notes       String?
+  createdById String?         @map("created_by_id") @db.Uuid
+  orderId     String?         @unique @map("order_id") @db.Uuid
+  sentAt      DateTime?       @map("sent_at") @db.Timestamptz(3)
+  acceptedAt  DateTime?       @map("accepted_at") @db.Timestamptz(3)
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  booking     Booking         @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  order       Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  lines       QuotationLine[]
+
+  @@index([userId, createdAt])
+  @@map("quotations")
+}
+
+/// A priced made-to-measure item; the price is locked for the validity of the quotation.
+model QuotationLine {
+  id              String             @id @default(uuid()) @db.Uuid
+  quotationId     String             @map("quotation_id") @db.Uuid
+  measurementId   String?            @map("measurement_id") @db.Uuid
+  productId       String             @map("product_id") @db.Uuid
+  variantId       String             @map("variant_id") @db.Uuid
+  configurationId String             @map("configuration_id") @db.Uuid
+  nameAr          String             @map("name_ar")
+  nameEn          String?            @map("name_en")
+  quantity        Int
+  unitPrice       Int                @map("unit_price")
+  sortOrder       Int                @default(0) @map("sort_order")
+  quotation       Quotation          @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  configuration   SavedConfiguration @relation(fields: [configurationId], references: [id], onDelete: Restrict)
+
+  @@index([quotationId])
+  @@map("quotation_lines")
 }

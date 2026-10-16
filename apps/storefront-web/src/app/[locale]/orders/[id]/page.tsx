@@ -29,7 +29,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   setRequestLocale(locale);
   const order = await getOrder(id, locale);
   if (!order) notFound();
-  const [t, tc, prefs] = await Promise.all([getTranslations('orders'), getTranslations('checkout'), getDisplayPrefs()]);
+  const [t, tc, ts, prefs] = await Promise.all([getTranslations('orders'), getTranslations('checkout'), getTranslations('services'), getDisplayPrefs()]);
   const money = (h: number) => formatPrice(h, { locale, digits: prefs.digits });
   const date = (iso: string) => formatDate(iso, { locale, digits: prefs.digits, calendar: prefs.calendar }, { dateStyle: 'medium', timeStyle: 'short' });
   const justPlaced = placed === '1' && order.status !== 'CANCELLED';
@@ -58,6 +58,25 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
       {order.status === 'CANCELLED' && <Alert className="mt-6">{t('cancelled')}</Alert>}
       {order.canRetryPayment && order.expiresAt && <Alert tone="info" className="mt-6">{t('payBefore', { time: date(order.expiresAt) })}</Alert>}
       <OrderActions orderId={order.id} canRetryPayment={order.canRetryPayment} canCancel={order.canCancel} />
+      {order.booking && (
+        <Alert tone="info" className="mt-6">
+          <Link href={`/account/bookings/${order.booking.id}`} className="font-medium underline">
+            {ts('visitBookingLink', { number: order.booking.number })}
+          </Link>
+        </Alert>
+      )}
+      {order.installationBookings.map((b) => (
+        <Alert key={b.id} tone="info" className="mt-6">
+          <Link href={`/account/bookings/${b.id}`} className="font-medium underline">
+            {ts('installationBookingLink', { number: b.number })}
+          </Link>
+        </Alert>
+      ))}
+      {order.canBookInstallation && (
+        <Link href={`/services/book?type=INSTALLATION&order=${order.id}`} className="mt-6 inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 font-medium text-white hover:bg-brand-700">
+          {ts('scheduleInstallation')}
+        </Link>
+      )}
 
       <div className="mt-8 grid gap-6 md:grid-cols-[1fr_320px]">
         <Card className="p-5">

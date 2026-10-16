@@ -8,12 +8,14 @@ const ALLOWED: Record<string, { method: 'GET' | 'POST'; api: string; maxBytes: n
   media: { method: 'POST', api: '/admin/media', maxBytes: 16 * 1024 * 1024 },
   'products/import': { method: 'POST', api: '/admin/products/import', maxBytes: 21 * 1024 * 1024 },
   'products/export': { method: 'GET', api: '/admin/products/export', maxBytes: 0 },
+  'technician/uploads': { method: 'POST', api: '/technician/uploads', maxBytes: 12 * 1024 * 1024 },
 };
 
 /** Downloads addressed by id. */
 const PATTERNS: Array<{ re: RegExp; method: 'GET'; api: (id: string) => string }> = [
   { re: /^invoices\/([0-9a-f-]{36})\/xml$/, method: 'GET', api: (id) => `/admin/invoices/${id}/xml` },
   { re: /^configurator\/uploads\/([0-9a-f-]{36})$/, method: 'GET', api: (id) => `/admin/configurator/uploads/${id}` },
+  { re: /^services\/uploads\/([0-9a-f-]{36})$/, method: 'GET', api: (id) => `/admin/services/uploads/${id}` },
 ];
 
 async function handle(req: NextRequest, ctx: Ctx) {

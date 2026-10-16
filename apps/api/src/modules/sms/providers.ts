@@ -1,16 +1,33 @@
 import { Injectable, Logger } from '@nestjs/common';
+import type Redis from 'ioredis';
+import { InjectRedis } from '../../core/redis/redis.provider';
 import { maskPhone } from '@hudhud/domain';
 import { AppConfig } from '../../core/config/app-config.service';
 import type { SmsMessage, SmsProvider, SmsSendResult } from './sms.port';
 
-/** Development adapter: prints messages to the log instead of sending them. Refused in production. */
+export const DEV_OUTBOX_KEY = (to: string) => `dev:sms:${to}`;
+
+/**
+ * Development adapter: prints messages to the log instead of sending them, and keeps the last few
+ * per number in a short-lived outbox for local testing (GET /dev/sms). Refused in production.
+ */
 @Injectable()
 export class ConsoleSmsProvider implements SmsProvider {
   readonly name = 'console';
   private readonly logger = new Logger('SMS');
 
+  constructor(@InjectRedis() private readonly redis: Redis) {}
+
   async send(message: SmsMessage): Promise<SmsSendResult> {
     this.logger.log(`[dev SMS] to ${message.to}: ${message.body}`);
+    const key = DEV_OUTBOX_KEY(message.to);
+    await this.redis
+      .multi()
+      .lpush(key, JSON.stringify({ body: message.body, at: new Date().toISOString() }))
+      .ltrim(key, 0, 9)
+      .expire(key, 900)
+      .exec()
+      .catch(() => undefined);
     return {};
   }
 }

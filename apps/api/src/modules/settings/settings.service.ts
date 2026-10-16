@@ -37,6 +37,8 @@ export const SETTING_DEFAULTS = {
   'payments.methods': { card: true, tabby: true, tamara: true, cod: true },
   /** Buy-now-pay-later order limits (halalas). */
   'payments.bnpl': { minTotalHalalas: 10000, maxTotalHalalas: 500000 },
+  /** Visit booking rules: lead time, how far ahead, change cut-off, visit-fee credit and quotation validity. */
+  'services.booking': { leadHours: 12, horizonDays: 21, changeCutoffHours: 24, visitCreditDays: 30, quotationValidityDays: 14 },
   'modules.enabled': {
     loyalty: false,
     fabricSamples: true,

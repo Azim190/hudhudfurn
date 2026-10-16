@@ -46,7 +46,11 @@ export type ErrorCode =
   | 'orderTransitionInvalid'
   | 'refundFailed'
   | 'paymentProviderError'
-  | 'configurationInvalid';
+  | 'configurationInvalid'
+  | 'slotUnavailable'
+  | 'bookingLocked'
+  | 'bookingTransitionInvalid'
+  | 'quotationNotOpen';
 
 export class AppError extends Error {
   constructor(

@@ -179,3 +179,55 @@ export async function seedCommerce(prisma: PrismaClient) {
   });
   seedLog.info('✓ pickup showroom and store legal details');
 }
+
+const SERVICE_AREAS = [
+  { code: 'RIYADH', nameAr: 'الرياض', nameEn: 'Riyadh', city: 'RUH' },
+  { code: 'JEDDAH', nameAr: 'جدة', nameEn: 'Jeddah', city: 'JED' },
+  { code: 'DAMMAM', nameAr: 'الدمام والخبر', nameEn: 'Dammam & Khobar', city: 'DMM' },
+] as const;
+
+/**
+ * Visit service areas (measurement SAR 50, installation SAR 150, free installation from SAR 1,500)
+ * and three weeks of time slots (Saturday–Thursday, four windows, 3 visits each). Re-running adds
+ * the missing days. An optional technician account comes from SEED_TECHNICIAN_EMAIL/PASSWORD.
+ */
+export async function seedServices(prisma: PrismaClient, opts: { technicianEmail?: string; technicianPassword?: string } = {}) {
+  const areaIds: string[] = [];
+  for (const a of SERVICE_AREAS) {
+    const city = await prisma.city.findUnique({ where: { code: a.city } });
+    if (!city) continue;
+    const area = await prisma.serviceArea.upsert({
+      where: { code: a.code },
+      create: { code: a.code, nameAr: a.nameAr, nameEn: a.nameEn, cityId: city.id, types: ['MEASUREMENT', 'INSTALLATION'], measurementFee: 5000, installationFee: 15000, freeInstallationAbove: 150000 },
+      update: {},
+    });
+    areaIds.push(area.id);
+    const windows = [
+      ['09:00', '12:00'],
+      ['12:00', '15:00'],
+      ['16:00', '19:00'],
+      ['19:00', '22:00'],
+    ];
+    const today = new Date(Date.now() + 3 * 3_600_000);
+    const data = [];
+    for (let i = 0; i < 21; i++) {
+      const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
+      if (d.getUTCDay() === 5) continue; // Friday off
+      for (const [startTime, endTime] of windows) data.push({ areaId: area.id, date: d, startTime: startTime!, endTime: endTime!, capacity: 3 });
+    }
+    await prisma.timeSlot.createMany({ data, skipDuplicates: true });
+  }
+  seedLog.info(`✓ ${areaIds.length} service areas with 3 weeks of slots`);
+
+  if (opts.technicianEmail && opts.technicianPassword) {
+    const role = await prisma.role.findUniqueOrThrow({ where: { key: 'technician' } });
+    const email = opts.technicianEmail.toLowerCase();
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      user = await prisma.user.create({ data: { kind: 'STAFF', email, fullName: 'Field Technician', passwordHash: await argon2.hash(opts.technicianPassword, { type: argon2.argon2id }), roles: { create: { roleId: role.id } } } });
+      seedLog.info(`✓ technician ${email} (2FA enrolment at first sign-in)`);
+    }
+    await prisma.technicianProfile.upsert({ where: { userId: user.id }, create: { userId: user.id }, update: {} });
+    for (const areaId of areaIds) await prisma.technicianArea.upsert({ where: { technicianId_areaId: { technicianId: user.id, areaId } }, create: { technicianId: user.id, areaId }, update: {} });
+  }
+}

@@ -42,3 +42,19 @@ export function halalasToSar(halalas: number | null | undefined): string {
   if (halalas === null || halalas === undefined) return '';
   return (halalas / 100).toFixed(2).replace(/\.00$/, '');
 }
+
+/** Field-app calls (`/api/v1/technician/*`) for staff with the technician role. */
+export function technicianCall<T>(path: string, method: 'GET' | 'POST' | 'PATCH' = 'GET', body?: unknown, locale?: string): Promise<T> {
+  return fetch(`/bff/technician${path}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(locale ? { 'X-HD-Locale': locale } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).then((r) => parse<T>(r));
+}
+
+/** Upload a field photo (re-encoded and stored privately by the API). */
+export function technicianUpload(file: File, locale?: string): Promise<{ id: string }> {
+  const form = new FormData();
+  form.append('file', file);
+  return fetch('/bff/files/technician/uploads', { method: 'POST', body: form, headers: locale ? { 'X-HD-Locale': locale } : {} }).then((r) => parse<{ id: string }>(r));
+}

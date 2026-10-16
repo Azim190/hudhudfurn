@@ -108,6 +108,8 @@ jobs:
       MEDIA_PUBLIC_BASE_URL: http://localhost:8333/hudhud-media
       SEED_OWNER_EMAIL: owner@ci.test
       SEED_OWNER_PASSWORD: ci-owner-password-123
+      SEED_TECHNICIAN_EMAIL: tech@ci.test
+      SEED_TECHNICIAN_PASSWORD: ci-technician-password-123
     steps:
       - uses: actions/checkout@v4
       - run: docker run -d --name s3 -p 8333:8333 chrislusf/seaweedfs:3.97 server -s3 && npx --yes wait-on@8 -t 60000 tcp:localhost:8333

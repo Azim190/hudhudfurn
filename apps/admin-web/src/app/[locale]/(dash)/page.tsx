@@ -1,12 +1,15 @@
 import { isLocale } from '@hudhud/i18n';
 import { Badge, Card } from '@hudhud/ui';
 import { getTranslations } from 'next-intl/server';
-import { requireAdmin } from '@/lib/server';
+import { redirect } from '@/i18n/navigation';
+import { can, requireAdmin } from '@/lib/server';
 
 export default async function OverviewPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!isLocale(locale)) return null;
   const me = await requireAdmin(locale);
+  // Field staff start on their job list.
+  if (!can(me, 'dashboard.view') && can(me, 'services.technician')) redirect({ href: '/technician', locale });
   const t = await getTranslations('admin');
 
   return (

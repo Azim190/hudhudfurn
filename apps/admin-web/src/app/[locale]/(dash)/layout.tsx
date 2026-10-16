@@ -11,6 +11,8 @@ export const dynamic = 'force-dynamic';
 const NAV = [
   { href: '/', key: 'admin.dashboard', permission: 'dashboard.view' },
   { href: '/orders', key: 'admin.orders', permission: 'orders.read' },
+  { href: '/services/bookings', key: 'technician.bookings', permission: 'services.read' },
+  { href: '/technician', key: 'technician.myJobs', permission: 'services.technician' },
   { href: '/catalog/products', key: 'catalog.products', permission: 'catalog.product.read' },
   { href: '/catalog/categories', key: 'catalog.categories', permission: 'catalog.category.read' },
   { href: '/catalog/attributes', key: 'catalog.attributes', permission: 'catalog.attribute.read' },

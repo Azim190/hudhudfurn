@@ -6,6 +6,7 @@ import type { StoreInfo } from '@/lib/server';
 /** Footer with the legally required CR and VAT numbers (Saudi e-commerce law) and policy links. */
 export async function SiteFooter({ locale, store }: { locale: Locale; store: StoreInfo | null }) {
   const t = await getTranslations('footer');
+  const ts = await getTranslations('services');
   const storeName = store ? pickLocalized(store.name, locale) : (await getTranslations('common'))('storeName');
   const whatsapp = store?.contact.whatsapp.replace(/\D/g, '');
 
@@ -28,7 +29,10 @@ export async function SiteFooter({ locale, store }: { locale: Locale; store: Sto
             </li>
           ))}
         </ul>
-        <div className="text-sm">
+        <div className="flex flex-col items-start gap-3 text-sm">
+          <Link href="/services/book" className="font-medium text-brand-700 hover:underline">
+            {ts('bookTitle')}
+          </Link>
           {whatsapp && (
             <a
               href={`https://wa.me/${whatsapp}`}

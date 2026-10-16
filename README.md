@@ -39,9 +39,12 @@ pnpm dev
 | API and Swagger | http://localhost:4100/api/v1 · http://localhost:4100/docs |
 | Storefront | http://localhost:3100/ar |
 | Admin | http://localhost:3101/ar/login (owner = `SEED_OWNER_EMAIL` / `SEED_OWNER_PASSWORD`; 2FA set-up is forced at first sign-in) |
+| Technician | Same admin app, `/ar/technician`, phone-sized (optional `SEED_TECHNICIAN_EMAIL` / `SEED_TECHNICIAN_PASSWORD` account) |
 | Mailpit | http://localhost:8025 |
 
-In development, OTP codes appear in the API log as `[dev SMS] …` (`SMS_PROVIDER=console`). The API refuses to start in production with that provider.
+In development, OTP codes and booking messages appear in the API log as `[dev SMS] …` (`SMS_PROVIDER=console`). The last 10 per number are also kept for 15 minutes at `GET /api/v1/dev/sms?to=05…`, which the Playwright suite uses to sign customers in. That endpoint answers only with the console provider outside production, and the API refuses to start in production with that provider.
+
+**Home visits:** the seed creates service areas for Riyadh, Jeddah and Dammam & Khobar with three weeks of slots. Book at http://localhost:3100/ar/services/book, assign the visit under *Visits* in the admin, then run it as the technician. See [ADR-0006](docs/adr/0006-home-services-quotations.md).
 
 **Checkout without gateway credentials:** set `PAYMENTS_SIMULATOR=true`. Card, Tabby and Tamara payments then open a local hosted page (Pay / Decline / Cancel) with the same redirect, verification, capture and refund flow as the real gateways. Real providers are used whenever their keys are set (`MOYASAR_*`, `TABBY_*`, `TAMARA_*`). Sample coupons: `WELCOME10` (first order), `SAVE50` (orders over SAR 300) and `FREESHIP`.
 
@@ -68,8 +71,8 @@ node scripts/check-logical-css.mjs apps/storefront-web/src   # bans physical lef
 | 3 | Storefront browsing, product pages, cart, wishlist, compare, banners | ✅ |
 | 4 | Checkout, payments, VAT, shipping, ZATCA invoices | ✅ |
 | 5 | Made-to-measure configurators | ✅ |
-| 6 | Measurement/installation services, technician flow, quotations | ⏳ next |
-| 7 | Admin: orders, inventory, workshop, reports, marketing, settings | |
+| 6 | Measurement/installation services, technician flow, quotations | ✅ |
+| 7 | Admin: orders, inventory, workshop, reports, marketing, settings | ⏳ next |
 | 8 | Notifications and carrier integrations | |
 | 9 | Flutter apps | |
 | 10 | Hardening: security, performance, accessibility, docs | |
