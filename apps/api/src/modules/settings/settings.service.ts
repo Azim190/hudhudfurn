@@ -22,6 +22,8 @@ export const SETTING_DEFAULTS = {
     postalCode: '',
   },
   'store.contact': { phone: '', whatsapp: '', email: '' },
+  /** Social media profile URLs shown in the storefront footer; empty ones are hidden. */
+  'store.social': { instagram: '', x: '', facebook: '', tiktok: '', telegram: '' },
   'tax.vat': { rateBp: SA_STANDARD_VAT_BP, pricesIncludeVat: true },
   'cart.giftWrap': { priceHalalas: 1500 },
   'cart.limits': { maxLines: 50, maxQuantityPerLine: 20 },
@@ -72,13 +74,14 @@ export class SettingsService {
   }
 
   async publicStoreInfo() {
-    const [name, legal, contact, vat, modules] = await Promise.all([
+    const [name, legal, contact, social, vat, modules] = await Promise.all([
       this.get('store.name'),
       this.get('store.legal'),
       this.get('store.contact'),
+      this.get('store.social'),
       this.get('tax.vat'),
       this.get('modules.enabled'),
     ]);
-    return { name, legal, contact, vat, modules };
+    return { name, legal, contact, social, vat, modules };
   }
 }

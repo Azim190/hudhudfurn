@@ -42,6 +42,8 @@ export const envSchema = z.object({
     .string()
     .refine((v) => Buffer.from(v, 'base64').length === 32, 'ENCRYPTION_KEY must be 32 bytes base64'),
 
+  /** Staff must confirm sign-in with an authenticator code. Can only be turned off outside production. */
+  STAFF_MFA_REQUIRED: bool.default('true'),
   STAFF_LOGIN_MAX_FAILURES: z.coerce.number().int().positive().default(5),
   STAFF_LOGIN_LOCK_SECONDS: z.coerce.number().int().positive().default(900),
   TOTP_ISSUER: z.string().default('HUDHUD'),
@@ -113,6 +115,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   }
   const env = parsed.data;
   if (env.NODE_ENV === 'production') {
+    if (!env.STAFF_MFA_REQUIRED) throw new Error('STAFF_MFA_REQUIRED=false is not allowed in production');
     if (env.SMS_PROVIDER === 'console') throw new Error('SMS_PROVIDER=console is not allowed in production');
     if (env.SWAGGER_ENABLED) throw new Error('Disable SWAGGER_ENABLED in production');
     if (env.PAYMENTS_SIMULATOR) throw new Error('PAYMENTS_SIMULATOR is not allowed in production');

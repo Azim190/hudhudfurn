@@ -4,6 +4,7 @@ import { Alert, Button, Card, Field, OtpInput } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { withBase } from '@/lib/base-path';
 
 type Step =
   | { kind: 'credentials' }
@@ -56,10 +57,12 @@ export function StaffLoginForm() {
   const submitCredentials = (e: FormEvent) => {
     e.preventDefault();
     void run(async () => {
-      const { enrollmentRequired } = await post<{ enrollmentRequired: boolean }>('/bff/auth/staff/login', { email, password }, locale);
+      const { signedIn, enrollmentRequired } = await post<{ signedIn: boolean; enrollmentRequired: boolean }>(withBase('/bff/auth/staff/login'), { email, password }, locale);
       setPassword('');
-      if (enrollmentRequired) {
-        const enrollment = await post<{ qrDataUrl: string; secret: string }>('/bff/auth/staff/totp/enroll', {}, locale);
+      if (signedIn) {
+        enter();
+      } else if (enrollmentRequired) {
+        const enrollment = await post<{ qrDataUrl: string; secret: string }>(withBase('/bff/auth/staff/totp/enroll'), {}, locale);
         setStep({ kind: 'enroll', ...enrollment });
       } else {
         setStep({ kind: 'totp' });
@@ -70,7 +73,7 @@ export function StaffLoginForm() {
   const submitTotp = (value = code) =>
     run(async () => {
       const body = useRecovery ? { recoveryCode } : { code: value };
-      const { recoveryCodes } = await post<{ recoveryCodes: string[] | null }>('/bff/auth/staff/totp/verify', body, locale);
+      const { recoveryCodes } = await post<{ recoveryCodes: string[] | null }>(withBase('/bff/auth/staff/totp/verify'), body, locale);
       if (recoveryCodes?.length) setStep({ kind: 'recovery-codes', codes: recoveryCodes });
       else enter();
     }).finally(() => setCode(''));

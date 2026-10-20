@@ -4,6 +4,7 @@ import { Alert, Badge, Button, Card } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { adminCall, adminUpload } from '@/lib/admin-client';
+import { withBase } from '@/lib/base-path';
 
 interface Job {
   id: string;
@@ -113,10 +114,10 @@ export function ImportPanel({ columns }: { columns: string[] }) {
       <Card className="flex flex-col gap-3 p-5">
         <p className="text-sm text-ink-500">{t('exportHint')}</p>
         <div className="flex gap-2">
-          <a href="/bff/files/products/export?format=xlsx" className="inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 text-sm font-medium text-white hover:bg-brand-700">
+          <a href={withBase('/bff/files/products/export?format=xlsx')} className="inline-flex h-11 items-center rounded-xl bg-brand-600 px-5 text-sm font-medium text-white hover:bg-brand-700">
             {t('exportXlsx')}
           </a>
-          <a href="/bff/files/products/export?format=csv" className="inline-flex h-11 items-center rounded-xl border border-sand-300 bg-white px-5 text-sm font-medium hover:bg-sand-100">
+          <a href={withBase('/bff/files/products/export?format=csv')} className="inline-flex h-11 items-center rounded-xl border border-sand-300 bg-white px-5 text-sm font-medium hover:bg-sand-100">
             {t('exportCsv')}
           </a>
         </div>

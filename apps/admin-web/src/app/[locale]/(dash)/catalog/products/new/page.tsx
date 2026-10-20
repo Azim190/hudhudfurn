@@ -16,7 +16,10 @@ export default async function NewProductPage({ params }: { params: Promise<{ loc
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="text-2xl font-bold">{t('catalog.newProduct')}</h1>
-      <NewProductForm categories={flattenCategories(tree).map((c) => ({ id: c.id, label: `${'— '.repeat(c.depth)}${locale === 'en' ? c.nameEn || c.nameAr : c.nameAr}` }))} />
+      <NewProductForm
+        canUpload={can(me, 'catalog.media.write')}
+        categories={flattenCategories(tree).map((c) => ({ id: c.id, label: `${'— '.repeat(c.depth)}${locale === 'en' ? c.nameEn || c.nameAr : c.nameAr}` }))}
+      />
     </div>
   );
 }

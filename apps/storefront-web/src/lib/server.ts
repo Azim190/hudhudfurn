@@ -25,6 +25,8 @@ export interface StoreInfo {
   name: { ar: string; en: string };
   legal: { commercialRegistration: string; vatNumber: string; legalNameAr: string; legalNameEn: string };
   contact: { phone: string; whatsapp: string; email: string };
+  /** Absent from APIs older than the social-links setting. */
+  social?: Partial<Record<'instagram' | 'x' | 'facebook' | 'tiktok' | 'telegram', string>>;
   vat: { rateBp: number; pricesIncludeVat: boolean };
   modules: Record<string, boolean>;
 }

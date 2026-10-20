@@ -21,11 +21,10 @@ interface MfaClaims {
   purpose: 'mfa';
 }
 
-export interface StaffLoginResult {
-  mfaToken: string;
-  mfaTokenExpiresIn: number;
-  enrollmentRequired: boolean;
-}
+export type StaffLoginResult =
+  | { mfaRequired: true; mfaToken: string; mfaTokenExpiresIn: number; enrollmentRequired: boolean }
+  /** STAFF_MFA_REQUIRED=false (non-production only): the password alone opens a session. */
+  | ({ mfaRequired: false } & IssuedTokens);
 
 export interface TotpEnrollment {
   otpauthUri: string;
@@ -36,7 +35,8 @@ export interface TotpEnrollment {
 export type TotpVerifyResult = IssuedTokens & { recoveryCodes?: string[] };
 
 /**
- * Staff sign-in: email + password → short-lived MFA token → TOTP (mandatory) → session.
+ * Staff sign-in: email + password → short-lived MFA token → TOTP → session. With STAFF_MFA_REQUIRED=false
+ * (never in production) the password step issues a session directly, marked as not MFA-verified.
  * Repeated failures lock the account for a configurable period.
  */
 @Injectable()
@@ -60,7 +60,7 @@ export class StaffAuthService {
     return argon2.hash(password, { type: argon2.argon2id, memoryCost: 65_536, timeCost: 3, parallelism: 4 });
   }
 
-  async login(email: string, password: string): Promise<StaffLoginResult> {
+  async login(email: string, password: string, client: ClientContext): Promise<StaffLoginResult> {
     const normalized = email.trim().toLowerCase();
     await this.assertNotLocked(`login:${normalized}`);
 
@@ -79,8 +79,14 @@ export class StaffAuthService {
     if (user.status !== 'ACTIVE') throw AppError.forbidden('accountBlocked');
     await this.redis.del(this.failKey(`login:${normalized}`));
 
+    if (!this.config.get('STAFF_MFA_REQUIRED')) {
+      await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+      return { mfaRequired: false, ...(await this.tokens.issue(user, { mfaVerified: false, client })) };
+    }
+
     const claims: MfaClaims = { sub: user.id, purpose: 'mfa' };
     return {
+      mfaRequired: true,
       mfaToken: await this.jwt.signAsync(claims, {
         secret: this.config.get('JWT_MFA_SECRET'),
         expiresIn: MFA_TOKEN_TTL_SECONDS,

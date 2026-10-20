@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
 import { ApiError, apiFetch } from './api-client';
+import { withoutBrowserLanguage } from './locale';
 import { clearSession, clientIpOf, isSameOrigin, refreshTokens, STOREFRONT_COOKIES, writeSession } from './session';
 
 const headers = (h: Record<string, string>) => ({ headers: new Headers(h) });
@@ -94,5 +96,18 @@ describe('apiFetch', () => {
     const err = (await apiFetch('/x').catch((e: unknown) => e)) as ApiError;
     expect(err.code).toBe('generic');
     expect(err.status).toBe(502);
+  });
+});
+
+describe('withoutBrowserLanguage', () => {
+  it('drops Accept-Language and keeps the basePath out of the pathname', () => {
+    const req = new NextRequest('http://localhost:3101/admin/ar', {
+      headers: { 'accept-language': 'en-US' },
+      nextConfig: { basePath: '/admin' },
+    });
+    const out = withoutBrowserLanguage(req);
+    expect(out.headers.has('accept-language')).toBe(false);
+    expect(out.nextUrl.basePath).toBe('/admin');
+    expect(out.nextUrl.pathname).toBe('/ar');
   });
 });

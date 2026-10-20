@@ -39,6 +39,7 @@
   "language": {
     "label": "Language",
     "switchTo": "العربية",
+    "switchToShort": "ع",
     "digits": "Digits",
     "digitsWestern": "123",
     "digitsArabic": "١٢٣",
@@ -61,6 +62,7 @@
     "changeNumber": "Change number",
     "consentTerms": "By continuing you agree to the Terms & Conditions and Privacy Policy",
     "staffTitle": "Staff sign in",
+    "staffLink": "Staff? Sign in with email and password",
     "emailLabel": "Email",
     "passwordLabel": "Password",
     "signIn": "Sign in",
@@ -143,7 +145,9 @@
     "commercialRegistration": "CR No.: {number}",
     "vatNumber": "VAT No.: {number}",
     "rights": "© {year} {store}. All rights reserved.",
-    "whatsapp": "Chat on WhatsApp"
+    "whatsapp": "Chat on WhatsApp",
+    "followUs": "Follow us",
+    "socialLink": "{store} on {network}"
   },
   "home": {
     "heroTitle": "A more beautiful home starts here",
@@ -381,6 +385,10 @@
     "setStock": "Update",
     "noVariantAxes": "This category has no variant axes; the product sells as a single variant.",
     "uploadImages": "Upload images",
+    "productImages": "Product images",
+    "addImages": "Add images",
+    "imagesFailedAfterCreate": "The product was created, but the images could not be uploaded: {error}",
+    "openProduct": "Open the product to add them",
     "uploadHint": "JPG, PNG, WebP or AVIF up to 15 MB. Location and camera metadata are removed automatically.",
     "processing": "Processing…",
     "mediaFailed": "Image processing failed",

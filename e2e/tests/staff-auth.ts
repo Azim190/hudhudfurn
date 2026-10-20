@@ -3,12 +3,13 @@ import { authenticator } from 'otplib';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-export const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101';
+export const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101/admin';
 export const AUTH_DIR = join(__dirname, '..', '.auth');
 
 /**
  * Sign a staff member in through the real UI (password → TOTP), enrolling 2FA on first run.
- * The TOTP secret is kept locally (git-ignored) so later runs can generate codes.
+ * The TOTP secret is kept locally (git-ignored) so later runs can generate codes. Against an API with
+ * STAFF_MFA_REQUIRED=false the password alone signs in and the TOTP step is skipped.
  */
 export async function staffSignIn(page: Page, opts: { email: string; password: string; secretFile: string; statePath: string; landed: (page: Page) => Locator }) {
   await page.goto(`${ADMIN}/en/login`);
@@ -18,7 +19,12 @@ export async function staffSignIn(page: Page, opts: { email: string; password: s
 
   const enrol = page.getByRole('heading', { name: 'Set up two-factor authentication' });
   const verify = page.getByRole('heading', { name: 'Two-factor verification' });
-  await expect(enrol.or(verify)).toBeVisible();
+  const landed = opts.landed(page);
+  await expect(enrol.or(verify).or(landed)).toBeVisible({ timeout: 15_000 });
+  if (await landed.isVisible()) {
+    await page.context().storageState({ path: opts.statePath });
+    return;
+  }
 
   let secret: string;
   if (await enrol.isVisible()) {
@@ -30,7 +36,6 @@ export async function staffSignIn(page: Page, opts: { email: string; password: s
     secret = readFileSync(opts.secretFile, 'utf8').trim();
   }
   const codesTitle = page.getByRole('heading', { name: 'Recovery codes' });
-  const landed = opts.landed(page);
   const rejected = page.getByRole('main').getByRole('alert').or(page.locator('.bg-danger-50[role="alert"]'));
 
   await page.getByLabel('Verification code 1').fill(authenticator.generate(secret));

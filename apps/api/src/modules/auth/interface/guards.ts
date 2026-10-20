@@ -57,6 +57,7 @@ export class PermissionsGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly rbac: RbacService,
+    private readonly config: AppConfig,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -68,7 +69,7 @@ export class PermissionsGuard implements CanActivate {
     const user = ctx.switchToHttp().getRequest<Request>().user;
     if (!user) throw AppError.unauthorized();
     if (user.kind !== 'STAFF') throw AppError.forbidden();
-    if (!user.mfa) throw AppError.forbidden('totpRequired');
+    if (!user.mfa && this.config.get('STAFF_MFA_REQUIRED')) throw AppError.forbidden('totpRequired');
 
     if (required.length === 0) return true;
     const { permissions } = await this.rbac.resolve(user.id);

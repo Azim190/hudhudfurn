@@ -45,9 +45,9 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 300_000 } })
   @Post('staff/login')
   @HttpCode(200)
-  @ApiOperation({ summary: 'Staff step 1: email + password → MFA token' })
-  staffLogin(@Body() dto: StaffLoginDto) {
-    return this.staff.login(dto.email, dto.password);
+  @ApiOperation({ summary: 'Staff step 1: email + password → MFA token (or session tokens when STAFF_MFA_REQUIRED=false)' })
+  staffLogin(@Body() dto: StaffLoginDto, @Client() client: ClientContext) {
+    return this.staff.login(dto.email, dto.password, client);
   }
 
   @Public()

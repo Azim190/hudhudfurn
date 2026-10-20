@@ -11,6 +11,7 @@ const redisPort = process.env.REDIS_PORT ?? '56379';
 process.env.NODE_ENV = 'test';
 process.env.LOG_LEVEL = 'warn';
 process.env.SMS_PROVIDER = 'console';
+process.env.STAFF_MFA_REQUIRED = 'true';
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL ?? `postgresql://hudhud:hudhud@localhost:${pgPort}/hudhud_test?schema=public`;
 process.env.REDIS_URL = process.env.TEST_REDIS_URL ?? `redis://localhost:${redisPort}/1`;
 

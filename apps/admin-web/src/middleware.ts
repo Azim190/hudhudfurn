@@ -11,5 +11,6 @@ export default async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!bff|_next|_vercel|.*\\..*).*)'],
+  // '/' is the bare basePath root (/admin), which the pattern below does not cover.
+  matcher: ['/', '/((?!bff|_next|_vercel|.*\\..*).*)'],
 };

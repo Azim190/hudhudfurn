@@ -9,7 +9,7 @@ Legend: **P** = public, **C** = authenticated customer, **G** = guest allowed (c
 |---|---|---|---|
 | POST | /auth/otp/request | P | Send an OTP to a Saudi mobile (rate limited per phone and per IP) |
 | POST | /auth/otp/verify | P | Verify the OTP → access token + refresh cookie (creates the customer if new) |
-| POST | /auth/staff/login | P | Email + password → `mfa_token` (short-lived) or a TOTP enrolment challenge |
+| POST | /auth/staff/login | P | Email + password → `mfa_token` (short-lived) or a TOTP enrolment challenge; with `STAFF_MFA_REQUIRED=false` (non-production only) → session tokens directly |
 | POST | /auth/staff/totp/enroll | P (mfa_token) | Returns the otpauth URI and QR for first-time setup |
 | POST | /auth/staff/totp/verify | P (mfa_token) | TOTP code → staff tokens |
 | POST | /auth/refresh | P (cookie/body) | Rotate the refresh token (reuse detection) |

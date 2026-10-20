@@ -37,7 +37,9 @@ export function LanguageSwitcher() {
       }}
       className="rounded-lg px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-sand-100"
     >
-      {t('language.switchTo')}
+      {/* Short label on phones keeps the header row within 320–360px screens. */}
+      <span className="sm:hidden">{t('language.switchToShort')}</span>
+      <span className="hidden sm:inline">{t('language.switchTo')}</span>
     </button>
   );
 }
@@ -71,12 +73,27 @@ export function DigitToggle() {
 export function AccountLink() {
   const t = useTranslations('nav');
   const signedIn = useCookie(STOREFRONT_COOKIES.hint) === '1';
+  const label = signedIn ? t('account') : t('login');
   return (
-    <Link
-      href={signedIn ? '/account' : '/login'}
-      className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium whitespace-nowrap text-white hover:bg-brand-700"
-    >
-      {signedIn ? t('account') : t('login')}
-    </Link>
+    <>
+      {/* Phones: an icon, so the header row fits 360–412px screens without horizontal scroll. */}
+      <Link
+        href={signedIn ? '/account' : '/login'}
+        aria-label={label}
+        title={label}
+        className="inline-flex size-10 items-center justify-center rounded-lg bg-brand-600 text-white hover:bg-brand-700 sm:hidden"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="size-5">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0" />
+        </svg>
+      </Link>
+      <Link
+        href={signedIn ? '/account' : '/login'}
+        className="hidden rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium whitespace-nowrap text-white hover:bg-brand-700 sm:inline-flex"
+      >
+        {label}
+      </Link>
+    </>
   );
 }

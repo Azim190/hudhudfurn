@@ -35,11 +35,20 @@ export default async function LoginPage({
   if (await getCurrentUser(locale)) redirect({ href: next, locale });
 
   const t = await getTranslations('auth');
+  // Staff sign in on the admin app at /admin (email + password); shown only where it is proxied.
+  const adminEnabled = Boolean(process.env.ADMIN_URL);
   return (
     <div className="mx-auto max-w-md px-4 py-12 sm:py-20">
       <h1 className="text-3xl font-bold">{t('otpTitle')}</h1>
       <p className="mt-2 text-ink-700">{t('otpSubtitle')}</p>
       <OtpLoginForm next={next} />
+      {adminEnabled && (
+        <p className="mt-8 border-t border-sand-200 pt-6 text-center text-sm">
+          <a href={`/admin/${locale}/login`} className="text-brand-700 hover:underline">
+            {t('staffLink')}
+          </a>
+        </p>
+      )}
     </div>
   );
 }

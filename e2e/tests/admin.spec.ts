@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101';
+const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101/admin';
 
 for (const locale of ['ar', 'en'] as const) {
   test.describe(`admin (${locale})`, () => {

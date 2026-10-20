@@ -4,6 +4,7 @@ import { formatDate, type Locale } from '@hudhud/i18n';
 import { Alert, Badge, Button, Card, Field } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
+import { withBase } from '@/lib/base-path';
 
 export interface RoleOption {
   key: string;
@@ -72,7 +73,7 @@ export function StaffManager({
   const create = (e: FormEvent) => {
     e.preventDefault();
     void act('create', async () => {
-      const row = await call<StaffRow>('/bff/admin/staff', 'POST', locale, form);
+      const row = await call<StaffRow>(withBase('/bff/admin/staff'), 'POST', locale, form);
       setStaff((list) => [...list, row]);
       setForm({ email: '', fullName: '', temporaryPassword: '', roleKeys: [] });
       setMessage({ tone: 'success', text: t('staffCreated') });
@@ -126,7 +127,7 @@ export function StaffManager({
                         loading={busy === s.id}
                         onClick={() =>
                           act(s.id, async () =>
-                            replace(await call<StaffRow>(`/bff/admin/staff/${s.id}`, 'PATCH', locale, { status: s.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE' })),
+                            replace(await call<StaffRow>(withBase(`/bff/admin/staff/${s.id}`), 'PATCH', locale, { status: s.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE' })),
                           )
                         }
                       >
@@ -139,7 +140,7 @@ export function StaffManager({
                           disabled={busy === s.id}
                           onClick={() => {
                             if (!window.confirm(t('confirmReset2fa'))) return;
-                            void act(s.id, async () => replace(await call<StaffRow>(`/bff/admin/staff/${s.id}/reset-2fa`, 'POST', locale, {})));
+                            void act(s.id, async () => replace(await call<StaffRow>(withBase(`/bff/admin/staff/${s.id}/reset-2fa`), 'POST', locale, {})));
                           }}
                         >
                           {t('reset2fa')}

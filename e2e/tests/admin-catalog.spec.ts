@@ -5,7 +5,7 @@ import sharp from 'sharp';
  * Admin catalog flows against the seeded sample catalog. Runs serially in one browser context
  * because the steps share a product created through the UI.
  */
-const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101';
+const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101/admin';
 test.describe.configure({ mode: 'serial' });
 
 /** Remove products created by earlier (possibly failed) runs, through the admin BFF. */
@@ -13,8 +13,8 @@ async function deleteTestProducts(request: import('@playwright/test').APIRequest
   const res = await request.get(`${ADMIN}/bff/admin/products?q=E2E%20Test&limit=100`);
   if (!res.ok()) return;
   const { items } = (await res.json()) as { items: Array<{ id: string; nameEn: string }> };
-  for (const p of items.filter((x) => x.nameEn === 'E2E Test Abaya')) {
-    await request.delete(`${ADMIN}/bff/admin/products/${p.id}`, { headers: { Origin: ADMIN } });
+  for (const p of items.filter((x) => x.nameEn === 'E2E Test Abaya' || x.nameEn === 'E2E Test Abaya With Photos')) {
+    await request.delete(`${ADMIN}/bff/admin/products/${p.id}`, { headers: { Origin: new URL(ADMIN).origin } });
   }
 }
 
@@ -90,6 +90,31 @@ test('creates a draft product and edits it in both languages', async ({ page }) 
   await expect(page).toHaveURL(/\/en\/catalog\/products$/);
 });
 
+test('adds images while creating a product', async ({ page }) => {
+  await page.goto(`${ADMIN}/en/catalog/products/new`);
+  await page.getByLabel('Category').selectOption({ label: '— Everyday abayas' });
+  await page.getByLabel('Name (Arabic)').fill('عباية اختبار مع صور');
+  await page.getByLabel('Name (English)').fill('E2E Test Abaya With Photos');
+  await page.getByLabel(/Base price/).fill('199');
+
+  const png = (bg: string) => sharp({ create: { width: 600, height: 750, channels: 3, background: bg } }).png().toBuffer();
+  await page.locator('#new-product-images').setInputFiles([
+    { name: 'front.png', mimeType: 'image/png', buffer: await png('#151515') },
+    { name: 'back.png', mimeType: 'image/png', buffer: await png('#1F3A5F') },
+    { name: 'extra.png', mimeType: 'image/png', buffer: await png('#C9A227') },
+  ]);
+  // Previews before upload; one is removed again.
+  await expect(page.locator('form ul img')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Remove' }).last().click();
+  await expect(page.locator('form ul img')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Create' }).click();
+
+  await expect(page.getByRole('heading', { name: 'E2E Test Abaya With Photos' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Images' }).click();
+  await expect(page.locator('ul img')).toHaveCount(2);
+  await expect(page.getByLabel('Alt text (Arabic)').first()).toHaveValue('عباية اختبار مع صور');
+});
+
 test('Arabic product editor mirrors the layout', async ({ page }) => {
   await page.goto(`${ADMIN}/ar/catalog/products?q=ABY-0001`);
   await page.locator('tbody a').first().click();
@@ -105,7 +130,7 @@ test('admin edits reach the cached storefront page within seconds (on-demand rev
   const list = await request.get(`${ADMIN}/bff/admin/products?q=Magnetic`);
   const { items } = (await list.json()) as { items: Array<{ id: string; nameEn: string }> };
   const product = items.find((p) => p.nameEn.startsWith('Magnetic Curtain Tie-Backs'))!;
-  const patch = (nameEn: string) => request.patch(`${ADMIN}/bff/admin/products/${product.id}`, { data: { nameEn }, headers: { Origin: ADMIN } });
+  const patch = (nameEn: string) => request.patch(`${ADMIN}/bff/admin/products/${product.id}`, { data: { nameEn }, headers: { Origin: new URL(ADMIN).origin } });
   try {
     expect((await patch('Magnetic Curtain Tie-Backs (pair) – Edited')).ok()).toBe(true);
     await expect

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { pick, type CategoryNode } from '@/lib/catalog-types';
+import { DigitToggle } from './locale-controls';
 
 const slugOf = (locale: string, c: { slugAr: string; slugEn: string }) => encodeURIComponent(locale === 'en' ? c.slugEn : c.slugAr);
 
@@ -147,6 +148,10 @@ export function MobileMenu({ tree }: { tree: CategoryNode[] }) {
                 </li>
               ))}
             </ul>
+            <div className="flex items-center justify-between border-t border-sand-200 px-5 py-3 text-sm text-ink-700 sm:hidden">
+              {t('language.digits')}
+              <DigitToggle />
+            </div>
           </div>
         </div>
       )}

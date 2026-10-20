@@ -10,5 +10,6 @@ export function withoutBrowserLanguage(req: NextRequest): NextRequest {
   if (!req.headers.has('accept-language')) return req;
   const headers = new Headers(req.headers);
   headers.delete('accept-language');
-  return new NextRequest(req, { headers });
+  // Keep basePath (the admin app runs under /admin): a plain copy would expose it as part of the pathname.
+  return new NextRequest(req, { headers, nextConfig: { basePath: req.nextUrl.basePath } });
 }

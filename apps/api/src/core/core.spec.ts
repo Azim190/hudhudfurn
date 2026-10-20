@@ -35,6 +35,7 @@ describe('validateEnv', () => {
   });
 
   it('refuses unsafe production settings', () => {
+    expect(() => validateEnv({ ...baseEnv, NODE_ENV: 'production', STAFF_MFA_REQUIRED: 'false' })).toThrow(/STAFF_MFA_REQUIRED/);
     expect(() => validateEnv({ ...baseEnv, NODE_ENV: 'production', SWAGGER_ENABLED: 'false' })).toThrow(/SMS_PROVIDER=console/);
     expect(() =>
       validateEnv({ ...baseEnv, NODE_ENV: 'production', SMS_PROVIDER: 'unifonic', UNIFONIC_APP_SID: 'x', UNIFONIC_SENDER_ID: 'y' }),

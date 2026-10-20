@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { adminApi, can, requireAdmin } from '@/lib/server';
 import { OrderOperations } from './order-operations';
+import { withBase } from '@/lib/base-path';
 
 interface AdminOrder {
   id: string;
@@ -202,7 +203,7 @@ export default async function AdminOrderPage({ params }: { params: Promise<{ loc
                       </span>
                     </span>
                     {can(me, 'invoicing.read') && (
-                      <a href={`/bff/files/invoices/${inv.id}/xml`} className="text-brand-700 hover:underline">
+                      <a href={withBase(`/bff/files/invoices/${inv.id}/xml`)} className="text-brand-700 hover:underline">
                         {t('downloadXml')}
                       </a>
                     )}
@@ -248,9 +249,9 @@ function WorkshopSpecView({ spec, title, photosTitle, locale }: { spec: Workshop
           <p className="mt-3 font-semibold">{photosTitle}</p>
           <div className="mt-1 flex flex-wrap gap-2">
             {photos.map((id) => (
-              <a key={id} href={`/bff/files/configurator/uploads/${id}`} target="_blank" rel="noopener noreferrer">
+              <a key={id} href={withBase(`/bff/files/configurator/uploads/${id}`)} target="_blank" rel="noopener noreferrer">
                 {/* eslint-disable-next-line @next/next/no-img-element -- private image served through the admin proxy */}
-                <img src={`/bff/files/configurator/uploads/${id}`} alt="" className="size-20 rounded-md object-cover" />
+                <img src={withBase(`/bff/files/configurator/uploads/${id}`)} alt="" className="size-20 rounded-md object-cover" />
               </a>
             ))}
           </div>

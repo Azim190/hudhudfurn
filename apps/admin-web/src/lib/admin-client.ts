@@ -1,5 +1,7 @@
 'use client';
 
+import { withBase } from '@/lib/base-path';
+
 /** Browser-side calls to the admin BFF. Errors carry the API's localized message. */
 export class AdminRequestError extends Error {
   constructor(
@@ -19,7 +21,7 @@ async function parse<T>(res: Response): Promise<T> {
 }
 
 export function adminCall<T>(path: string, method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE' = 'GET', body?: unknown, locale?: string): Promise<T> {
-  return fetch(`/bff/admin${path}`, {
+  return fetch(withBase(`/bff/admin${path}`), {
     method,
     headers: { 'Content-Type': 'application/json', ...(locale ? { 'X-HD-Locale': locale } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -27,7 +29,7 @@ export function adminCall<T>(path: string, method: 'GET' | 'POST' | 'PATCH' | 'P
 }
 
 export function adminUpload<T>(path: 'media' | 'products/import', form: FormData, locale?: string): Promise<T> {
-  return fetch(`/bff/files/${path}`, { method: 'POST', body: form, headers: locale ? { 'X-HD-Locale': locale } : {} }).then((r) => parse<T>(r));
+  return fetch(withBase(`/bff/files/${path}`), { method: 'POST', body: form, headers: locale ? { 'X-HD-Locale': locale } : {} }).then((r) => parse<T>(r));
 }
 
 /** "149.5" / "١٤٩٫٥" → 14950 halalas; empty → null. */
@@ -45,7 +47,7 @@ export function halalasToSar(halalas: number | null | undefined): string {
 
 /** Field-app calls (`/api/v1/technician/*`) for staff with the technician role. */
 export function technicianCall<T>(path: string, method: 'GET' | 'POST' | 'PATCH' = 'GET', body?: unknown, locale?: string): Promise<T> {
-  return fetch(`/bff/technician${path}`, {
+  return fetch(withBase(`/bff/technician${path}`), {
     method,
     headers: { 'Content-Type': 'application/json', ...(locale ? { 'X-HD-Locale': locale } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -56,5 +58,5 @@ export function technicianCall<T>(path: string, method: 'GET' | 'POST' | 'PATCH'
 export function technicianUpload(file: File, locale?: string): Promise<{ id: string }> {
   const form = new FormData();
   form.append('file', file);
-  return fetch('/bff/files/technician/uploads', { method: 'POST', body: form, headers: locale ? { 'X-HD-Locale': locale } : {} }).then((r) => parse<{ id: string }>(r));
+  return fetch(withBase('/bff/files/technician/uploads'), { method: 'POST', body: form, headers: locale ? { 'X-HD-Locale': locale } : {} }).then((r) => parse<{ id: string }>(r));
 }

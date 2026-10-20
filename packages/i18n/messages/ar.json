@@ -39,6 +39,7 @@
   "language": {
     "label": "اللغة",
     "switchTo": "English",
+    "switchToShort": "EN",
     "digits": "الأرقام",
     "digitsWestern": "123",
     "digitsArabic": "١٢٣",
@@ -61,6 +62,7 @@
     "changeNumber": "تغيير الرقم",
     "consentTerms": "بالمتابعة فإنك توافق على الشروط والأحكام وسياسة الخصوصية",
     "staffTitle": "دخول فريق العمل",
+    "staffLink": "من فريق العمل؟ الدخول بالبريد الإلكتروني وكلمة المرور",
     "emailLabel": "البريد الإلكتروني",
     "passwordLabel": "كلمة المرور",
     "signIn": "دخول",
@@ -143,7 +145,9 @@
     "commercialRegistration": "السجل التجاري: {number}",
     "vatNumber": "الرقم الضريبي: {number}",
     "rights": "© {year} {store}. جميع الحقوق محفوظة.",
-    "whatsapp": "تواصل عبر واتساب"
+    "whatsapp": "تواصل عبر واتساب",
+    "followUs": "تابعنا",
+    "socialLink": "{store} على {network}"
   },
   "home": {
     "heroTitle": "أناقة بيتك تبدأ من هنا",
@@ -381,6 +385,10 @@
     "setStock": "تحديث",
     "noVariantAxes": "هذا القسم لا يحتوي على محاور متغيرات؛ المنتج يُباع كمتغير واحد.",
     "uploadImages": "رفع صور",
+    "productImages": "صور المنتج",
+    "addImages": "إضافة صور",
+    "imagesFailedAfterCreate": "تم إنشاء المنتج، لكن تعذّر رفع الصور: {error}",
+    "openProduct": "افتح المنتج لإضافتها",
     "uploadHint": "JPG أو PNG أو WebP أو AVIF حتى 15 ميجابايت. تُزال بيانات الموقع والكاميرا تلقائياً.",
     "processing": "جارٍ المعالجة…",
     "mediaFailed": "تعذرت معالجة الصورة",

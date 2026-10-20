@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import { join } from 'node:path';
 
 /**
- * Expects the API (4100), storefront (3100) and admin (3101) to be running
+ * Expects the API (4100), storefront (3100) and admin (3101, basePath /admin) to be running
  * (`pnpm dev` or the production builds). CI starts them before this suite.
  */
 export default defineConfig({

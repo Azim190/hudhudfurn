@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { BASE_PATH } from './src/lib/base-path';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -14,6 +15,7 @@ const securityHeaders = [
 ];
 
 const config: NextConfig = {
+  basePath: BASE_PATH,
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@hudhud/ui', '@hudhud/web-core'],

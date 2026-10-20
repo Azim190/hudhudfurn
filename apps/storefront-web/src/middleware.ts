@@ -13,5 +13,5 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   // Everything except BFF routes, Next internals and static files.
-  matcher: ['/((?!bff|_next|_vercel|.*\\..*).*)'],
+  matcher: ['/((?!bff|admin|_next|_vercel|.*\\..*).*)'],
 };

@@ -4,6 +4,7 @@ import type { Locale } from '@hudhud/i18n';
 import { useLocale, useTranslations } from 'next-intl';
 import { useTransition } from 'react';
 import { usePathname, useRouter } from '@/i18n/navigation';
+import { withBase } from '@/lib/base-path';
 
 export function LanguageSwitcher() {
   const t = useTranslations();
@@ -33,7 +34,7 @@ export function SignOutButton() {
     <button
       type="button"
       onClick={async () => {
-        await fetch('/bff/auth/logout', { method: 'POST' }).catch(() => undefined);
+        await fetch(withBase('/bff/auth/logout'), { method: 'POST' }).catch(() => undefined);
         router.replace('/login');
         router.refresh();
       }}

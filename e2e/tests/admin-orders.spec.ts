@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 
 /** Staff order operations. A guest COD order is placed through the storefront BFF first. */
 
-const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101';
+const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101/admin';
 const STOREFRONT = process.env.STOREFRONT_URL ?? 'http://localhost:3100';
 const API = process.env.API_URL ?? 'http://localhost:4100/api/v1';
 

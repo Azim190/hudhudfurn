@@ -32,6 +32,12 @@ export const SEED_ATTRIBUTES: SeedAttribute[] = [
       { code: 'rose', ar: 'وردي', en: 'Dusty rose', hex: '#D4A2AC' },
       { code: 'sky', ar: 'سماوي', en: 'Sky blue', hex: '#9CC5E0' },
       { code: 'gold', ar: 'ذهبي', en: 'Gold', hex: '#C9A227' },
+      { code: 'purple', ar: 'بنفسجي', en: 'Purple', hex: '#5E2A5C' },
+      { code: 'lilac', ar: 'ليلكي', en: 'Lilac', hex: '#B9A3C9' },
+      { code: 'sage', ar: 'أخضر مريمي', en: 'Sage', hex: '#9CA88A' },
+      { code: 'green', ar: 'أخضر', en: 'Green', hex: '#5F8F2E' },
+      { code: 'terracotta', ar: 'طوبي', en: 'Terracotta', hex: '#B5532E' },
+      { code: 'orange', ar: 'برتقالي', en: 'Orange', hex: '#E0661F' },
     ],
   },
   {

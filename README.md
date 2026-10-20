@@ -38,7 +38,7 @@ pnpm dev
 |---|---|
 | API and Swagger | http://localhost:4100/api/v1 · http://localhost:4100/docs |
 | Storefront | http://localhost:3100/ar |
-| Admin | http://localhost:3101/ar/login (owner = `SEED_OWNER_EMAIL` / `SEED_OWNER_PASSWORD`; 2FA set-up is forced at first sign-in) |
+| Admin | http://localhost:3100/admin (proxied by the storefront; also http://localhost:3101/admin directly) — sign in at `/admin/ar/login` (owner = `SEED_OWNER_EMAIL` / `SEED_OWNER_PASSWORD`; 2FA set-up is forced at first sign-in unless `STAFF_MFA_REQUIRED=false` in `apps/api/.env`, which is allowed only outside production) |
 | Technician | Same admin app, `/ar/technician`, phone-sized (optional `SEED_TECHNICIAN_EMAIL` / `SEED_TECHNICIAN_PASSWORD` account) |
 | Mailpit | http://localhost:8025 |
 

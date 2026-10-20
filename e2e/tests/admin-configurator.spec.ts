@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101';
+const ADMIN = process.env.ADMIN_URL ?? 'http://localhost:3101/admin';
 
 test('staff open a configurator template and simulate a quote', async ({ page }) => {
   await page.goto(`${ADMIN}/en/configurator`);

@@ -9,7 +9,7 @@ import { SettingsService } from './settings.service';
 export class StoreInfoController {
   constructor(private readonly settings: SettingsService) {}
 
-  /** Store identity for the footer and invoices: names, CR and VAT numbers, contact, enabled modules. */
+  /** Store identity for the footer and invoices: names, CR and VAT numbers, contact, social links, enabled modules. */
   @Get('info')
   info() {
     return this.settings.publicStoreInfo();

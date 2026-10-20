@@ -1,0 +1,73 @@
+import type { ShowroomGroup } from './showroom';
+
+// Tailored to the customer's window through the made-to-measure curtain configurator.
+export const CURTAINS: ShowroomGroup = {
+  category: 'custom-curtains',
+  imageDir: 'curtains',
+  madeToMeasure: { template: 'CUSTOM_CURTAINS', fabricWidthMm: 2800 },
+  products: [
+    {
+      ar: 'ستارة مقلمة وردية بكورنيش مسحوب وشراشيب',
+      en: 'Rose Striped Curtain with Swag Valance',
+      descAr: 'ستارة جاكار مقلمة بالوردي والذهبي مع كورنيش مسحوب على الكتف وشراشيب ذهبية، لمسة كلاسيكية للمجالس.',
+      descEn: 'Rose-and-gold striped jacquard with a draped swag valance and gold fringe — a classic touch for the majlis.',
+      colors: { rose: ['01.jpg'] },
+      attrs: { curtain_type: ['dimout'], curtain_fabric: ['jacquard'], opacity: ['room_darkening'], pattern: ['striped'], heading_style: ['pinch_pleat'] },
+      fabricPrice: 119,
+    },
+    {
+      ar: 'ستارة مخمل سوداء بشراشيب ذهبية مع شيفون أبيض',
+      en: 'Black Velvet Curtain with Gold Tassel Trim',
+      descAr: 'مخمل أسود فاخر بحافة شراشيب ذهبية وربطة جانبية، مع طبقة شيفون بيضاء تمرر الضوء بلطف.',
+      descEn: 'Luxurious black velvet edged with gold tassels and a tie-back, layered over a soft white sheer.',
+      colors: { black: ['02.jpg'] },
+      attrs: { curtain_type: ['blackout'], curtain_fabric: ['velvet'], opacity: ['blackout'], pattern: ['plain'], heading_style: ['pinch_pleat'] },
+      fabricPrice: 119,
+    },
+    {
+      ar: 'ستارة خردلية بربطات جانبية وشيفون منقوش',
+      en: 'Mustard Tie-Back Curtain with Patterned Sheer',
+      descAr: 'ستارة خردلية بكسرات وربطات جانبية من نفس القماش، فوق شيفون رمادي بنقشة هندسية.',
+      descEn: 'Pinch-pleated mustard panels with matching tie-backs over a grey geometric-patterned sheer.',
+      colors: { gold: ['03.jpg'] },
+      attrs: { curtain_type: ['dimout'], curtain_fabric: ['polyester'], opacity: ['room_darkening'], pattern: ['plain'], heading_style: ['pinch_pleat'] },
+      fabricPrice: 89,
+    },
+    {
+      ar: 'ستارة عنابي وكريمي بكسرات عريضة',
+      en: 'Burgundy & Cream Box-Pleat Curtain',
+      descAr: 'ستارة بألواح عنابية وكريمية متناوبة بكسرات عريضة منتظمة على عصا بأطراف ذهبية.',
+      descEn: 'Alternating burgundy and cream panels in crisp, even pleats on a rod with gold finials.',
+      colors: { burgundy: ['04.jpg'] },
+      attrs: { curtain_type: ['dimout'], curtain_fabric: ['polyester'], opacity: ['room_darkening'], pattern: ['plain'], heading_style: ['pinch_pleat'] },
+      fabricPrice: 89,
+    },
+    {
+      ar: 'ستارة ساتان ذهبية بكسرات',
+      en: 'Gold Satin Pleated Curtain',
+      descAr: 'ساتان ذهبي لامع بكسرات كثيفة على عصا ذهبية، يضفي دفئاً وفخامة على غرفة النوم.',
+      descEn: 'Lustrous gold satin in full pleats on a gold rod, bringing warmth and luxury to the bedroom.',
+      colors: { gold: ['05.jpg'] },
+      attrs: { curtain_type: ['dimout'], curtain_fabric: ['polyester'], opacity: ['light_filtering'], pattern: ['plain'], heading_style: ['pinch_pleat'] },
+      fabricPrice: 89,
+    },
+    {
+      ar: 'ستارة مخمل خردلية بشراشيب مع شيفون أبيض',
+      en: 'Mustard Velvet Curtain with Tasselled Edge',
+      descAr: 'لوحان من المخمل الخردلي بحافة شراشيب، يتوسطهما شيفون أبيض ناعم.',
+      descEn: 'Two mustard velvet panels with a tasselled leading edge, framing a soft white sheer.',
+      colors: { gold: ['06.jpg'] },
+      attrs: { curtain_type: ['blackout'], curtain_fabric: ['velvet'], opacity: ['blackout'], pattern: ['plain'], heading_style: ['pinch_pleat'] },
+      fabricPrice: 119,
+    },
+    {
+      ar: 'ستارة مخمل خردلية بحلقات',
+      en: 'Mustard Velvet Eyelet Curtain',
+      descAr: 'مخمل خردلي ناعم بتعليق حلقات معدنية ينسدل بطيات منتظمة، مثالي لغرف النوم.',
+      descEn: 'Soft mustard velvet on metal eyelets that falls in even folds — ideal for bedrooms.',
+      colors: { gold: ['07.jpg'] },
+      attrs: { curtain_type: ['blackout'], curtain_fabric: ['velvet'], opacity: ['blackout'], pattern: ['plain'], heading_style: ['eyelet'] },
+      fabricPrice: 119,
+    },
+  ],
+};

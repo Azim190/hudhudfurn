@@ -134,7 +134,7 @@ jobs:
         run: |
           (cd apps/storefront-web && npx next start --port 3100 &)
           (cd apps/admin-web && npx next start --port 3101 &)
-          npx --yes wait-on@8 -t 60000 http://localhost:4100/api/v1/health/ready http://localhost:3100/ar http://localhost:3101/ar/login
+          npx --yes wait-on@8 -t 60000 http://localhost:4100/api/v1/health/ready http://localhost:3100/ar http://localhost:3101/admin/ar/login
       - run: pnpm --filter @hudhud/e2e exec playwright install --with-deps chromium
       # Baselines are OS-specific; missing Linux baselines are written and uploaded for review.
       - run: pnpm --filter @hudhud/e2e exec playwright test --update-snapshots=missing

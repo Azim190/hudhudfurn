@@ -14,7 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "prisma db seed",
-    "seed:catalog": "node --env-file-if-exists=.env dist/cli/seed-catalog.js"
+    "seed:catalog": "node --env-file-if-exists=.env dist/cli/seed-catalog.js",
+    "seed:showroom": "node --env-file-if-exists=.env dist/cli/seed-showroom.js"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

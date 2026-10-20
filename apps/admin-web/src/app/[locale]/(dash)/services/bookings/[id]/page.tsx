@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { Link } from '@/i18n/navigation';
 import { adminApi, can, requireAdmin } from '@/lib/server';
 import { BookingOperations } from './booking-operations';
+import { withBase } from '@/lib/base-path';
 
 interface AdminBooking {
   id: string;
@@ -108,9 +109,9 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ l
                 {m.photos.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     {m.photos.map((p) => (
-                      <a key={p.id} href={`/bff/files/services/uploads/${p.id}`} target="_blank" rel="noopener noreferrer">
+                      <a key={p.id} href={withBase(`/bff/files/services/uploads/${p.id}`)} target="_blank" rel="noopener noreferrer">
                         {/* eslint-disable-next-line @next/next/no-img-element -- private photo through the admin proxy */}
-                        <img src={`/bff/files/services/uploads/${p.id}`} alt="" className="size-20 rounded object-cover" />
+                        <img src={withBase(`/bff/files/services/uploads/${p.id}`)} alt="" className="size-20 rounded object-cover" />
                       </a>
                     ))}
                   </div>
