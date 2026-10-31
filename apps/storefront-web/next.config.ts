@@ -15,6 +15,8 @@ const securityHeaders = [
 const adminUrl = process.env.ADMIN_URL?.replace(/\/$/, '');
 
 const config: NextConfig = {
+  // Set in the Docker build only: standalone output needs symlinks, which Windows dev machines refuse.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@hudhud/ui', '@hudhud/web-core'],

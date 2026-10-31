@@ -15,6 +15,8 @@ const securityHeaders = [
 ];
 
 const config: NextConfig = {
+  // Set in the Docker build only: standalone output needs symlinks, which Windows dev machines refuse.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   basePath: BASE_PATH,
   poweredByHeader: false,
   reactStrictMode: true,

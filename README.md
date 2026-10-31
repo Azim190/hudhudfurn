@@ -15,7 +15,7 @@ An Arabic-first (RTL) and English e-commerce platform for the Saudi market. It i
 | `packages/ui` | Shared RTL-ready React components and design tokens |
 | `packages/web-core` | Server-side BFF helpers: API client, session cookies, token refresh |
 | `e2e` | Playwright E2E and RTL/LTR visual tests |
-| `infra` | docker-compose for local services |
+| `infra` | docker-compose for local services and production Dockerfile ([deployment guide](docs/guides/deployment.md)) |
 | `docs` | ERD, module plan, API endpoint list, assumptions, ADRs |
 
 Start with [docs/planning](docs/planning/) and [docs/adr](docs/adr/).
