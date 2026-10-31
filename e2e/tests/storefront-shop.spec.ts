@@ -90,15 +90,18 @@ test('search suggestions work with the keyboard', async ({ page }) => {
   await expect(main(page).locator('article').first()).toBeVisible();
 });
 
+// The two sample sheet sets, isolated by material: newer bedding products would push them off page 1.
+const SAMPLE_SHEET_SETS = '/en/c/bedding?f.bedding_material=egyptian_cotton,bamboo';
+
 test('guest wishlist and compare persist on the device', async ({ page }) => {
-  await page.goto('/en/c/bedding');
+  await page.goto(SAMPLE_SHEET_SETS);
   await main(page).getByRole('button', { name: /^Add to wishlist: Egyptian Cotton Sheet Set/ }).click();
   await expect(page.getByRole('link', { name: 'Wishlist (1)' })).toBeVisible();
   await page.getByRole('link', { name: 'Wishlist (1)' }).click();
   await expect(main(page).getByRole('link', { name: /Egyptian Cotton Sheet Set/ })).toBeVisible();
 
   for (const name of ['Egyptian Cotton Sheet Set, 600 TC', 'Cooling Bamboo Sheet Set']) {
-    await page.goto('/en/c/bedding');
+    await page.goto(SAMPLE_SHEET_SETS);
     await main(page).getByRole('link', { name }).click();
     await page.getByRole('button', { name: 'Add to compare' }).click();
   }
