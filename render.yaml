@@ -1,0 +1,150 @@
+# Test deployment on Render's free plans. See "Test site on Render" in docs/guides/deployment.md.
+# The API runs with NODE_ENV=development so it can use the console SMS provider and the payment
+# simulator. /api/v1/dev/sms is public on this site, so never enter real customer data.
+#
+# Free services cannot receive private network traffic, so they call each other by public URL.
+# If Render adds a suffix to a service name, update these URLs to match.
+
+databases:
+  - name: hudhudfurn-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "17"
+    databaseName: hudhud
+    user: hudhud
+
+services:
+  - type: keyvalue
+    name: hudhudfurn-redis
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
+  - type: web
+    name: hudhudfurn-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./infra/docker/Dockerfile
+    dockerContext: .
+    # Free plans have no pre-deploy command, so migrations run at startup.
+    dockerCommand: sh start-with-migrations.sh
+    healthCheckPath: /api/v1/health/ready
+    envVars:
+      - key: SERVICE
+        value: api
+      - key: NODE_ENV
+        value: development
+      - key: PORT
+        value: 4100
+      - key: DATABASE_URL
+        fromDatabase:
+          name: hudhudfurn-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: hudhudfurn-redis
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_MFA_SECRET
+        generateValue: true
+      - key: OTP_PEPPER
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: REVALIDATE_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://hudhudfurn-web.onrender.com
+      - key: STOREFRONT_URL
+        value: https://hudhudfurn-web.onrender.com
+      - key: STOREFRONT_REVALIDATE_URL
+        value: https://hudhudfurn-web.onrender.com/bff/revalidate
+      - key: API_PUBLIC_URL
+        value: https://hudhudfurn-api.onrender.com
+      - key: TRUST_PROXY
+        value: true
+      - key: SWAGGER_ENABLED
+        value: false
+      - key: STAFF_MFA_REQUIRED
+        value: true
+      - key: SMS_PROVIDER
+        value: console
+      - key: PAYMENTS_SIMULATOR
+        value: true
+      # Search is not deployed: listings fall back to Postgres.
+      - key: MEILI_API_KEY
+        value: not-deployed
+      # Keeps image processing inside the free plan's memory.
+      - key: VIPS_CONCURRENCY
+        value: 1
+      - key: MALLOC_ARENA_MAX
+        value: 2
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: MEDIA_PUBLIC_BASE_URL
+        sync: false
+      - key: S3_REGION
+        value: auto
+      - key: S3_BUCKET
+        value: hudhudfurn-media
+      - key: S3_PRIVATE_BUCKET
+        value: hudhudfurn-private
+
+  - type: web
+    name: hudhudfurn-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./infra/docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /ar
+    envVars:
+      - key: SERVICE
+        value: storefront
+      - key: PORT
+        value: 3100
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: API_INTERNAL_URL
+        value: https://hudhudfurn-api.onrender.com/api/v1
+      - key: STOREFRONT_URL
+        value: https://hudhudfurn-web.onrender.com
+      # Also a build arg: it is baked into the /admin proxy.
+      - key: ADMIN_URL
+        value: https://hudhudfurn-admin.onrender.com
+      - key: REVALIDATE_SECRET
+        fromService:
+          type: web
+          name: hudhudfurn-api
+          envVarKey: REVALIDATE_SECRET
+
+  - type: web
+    name: hudhudfurn-admin
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    dockerfilePath: ./infra/docker/Dockerfile
+    dockerContext: .
+    healthCheckPath: /admin/ar/login
+    envVars:
+      - key: SERVICE
+        value: admin
+      - key: PORT
+        value: 3101
+      - key: HOSTNAME
+        value: 0.0.0.0
+      - key: API_INTERNAL_URL
+        value: https://hudhudfurn-api.onrender.com/api/v1
+      - key: STOREFRONT_URL
+        value: https://hudhudfurn-web.onrender.com

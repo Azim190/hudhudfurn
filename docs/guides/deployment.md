@@ -16,9 +16,9 @@ Only the storefront and the API need to be public. Keep the admin container priv
 Run from the repository root:
 
 ```bash
-docker build -f infra/docker/Dockerfile --target api -t hudhud-api .
-docker build -f infra/docker/Dockerfile --target storefront --build-arg ADMIN_URL=http://admin:3101 -t hudhud-storefront .
-docker build -f infra/docker/Dockerfile --target admin -t hudhud-admin .
+docker build -f infra/docker/Dockerfile --build-arg SERVICE=api -t hudhud-api .
+docker build -f infra/docker/Dockerfile --build-arg SERVICE=storefront --build-arg ADMIN_URL=http://admin:3101 -t hudhud-storefront .
+docker build -f infra/docker/Dockerfile --build-arg SERVICE=admin -t hudhud-admin .
 ```
 
 - `ADMIN_URL` is baked into the storefront image. Rebuild the storefront if the admin's internal address changes, and set the same value at runtime.
@@ -85,3 +85,45 @@ Then start the API, wait for `GET /api/v1/health/ready` to return 200, and start
 - `GET /api/v1/health/ready` returns `{"status":"ok","db":"up","redis":"up"}`.
 - `/ar`, `/en` and `/admin/ar/login` return 200 on the public domain.
 - `/docs` and `/api/v1/dev/sms` on the API return 404.
+
+## Test site on Render
+
+[render.yaml](../../render.yaml) deploys a **test site only** on Render's free plans. It is not a production setup:
+
+- The API runs with `NODE_ENV=development` so that it can use the console SMS provider and the payment simulator.
+- Anyone can read sign-in codes at `/api/v1/dev/sms`, so never enter real customer data.
+- There is no Meilisearch, so listings and search use the slower Postgres fallback.
+- Free services sleep after 15 minutes without traffic. The first visit afterwards takes a minute or more because the storefront and API both have to wake.
+- The free database expires after 30 days, and Render deletes it after a further 14 days unless it is upgraded.
+
+### 1. Create the storage
+
+Render has no object storage, so use Cloudflare R2 or another S3-compatible service:
+
+1. Create two buckets: `hudhudfurn-media` and `hudhudfurn-private`.
+2. Turn on public access for `hudhudfurn-media` only. Its public URL is your `MEDIA_PUBLIC_BASE_URL`.
+3. Create an API token with read and write access to both buckets. Note its access key, secret key and S3 endpoint.
+
+### 2. Deploy the Blueprint
+
+1. In the Render dashboard, choose **New > Blueprint** and connect this repository.
+2. Enter `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` and `MEDIA_PUBLIC_BASE_URL` when asked.
+3. Confirm the three web services kept their names. If Render added a suffix to any of them, update the URLs in `render.yaml` and push.
+
+### 3. Load the data
+
+The API starts with an empty catalog. Seed it once from a machine with Docker:
+
+```bash
+cp infra/render/seed.env.example .env.render.local   # then fill it in
+bash scripts/seed-render.sh .env.render.local
+```
+
+This takes 20 minutes or more, and is safe to re-run if it stops. It creates the first owner account, sample products and showroom content.
+
+### 4. Sign in
+
+- **Storefront:** `https://hudhudfurn-web.onrender.com/ar`
+- **Admin:** `https://hudhudfurn-web.onrender.com/admin/ar/login`. Set up 2FA with an authenticator app at first sign-in.
+- **Customer sign-in code:** use any valid Saudi mobile number, then open `https://hudhudfurn-api.onrender.com/api/v1/dev/sms?to=05XXXXXXXX`.
+- **Checkout:** card, Tabby and Tamara open the payment simulator. No real money moves.

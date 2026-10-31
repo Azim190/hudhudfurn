@@ -1,8 +1,11 @@
-# Production images. Build from the repository root, one target per service:
-#   docker build -f infra/docker/Dockerfile --target api -t hudhud-api .
-#   docker build -f infra/docker/Dockerfile --target storefront --build-arg ADMIN_URL=http://admin:3101 -t hudhud-storefront .
-#   docker build -f infra/docker/Dockerfile --target admin -t hudhud-admin .
+# Production images. Build from the repository root, one image per service:
+#   docker build -f infra/docker/Dockerfile --build-arg SERVICE=api -t hudhud-api .
+#   docker build -f infra/docker/Dockerfile --build-arg SERVICE=storefront --build-arg ADMIN_URL=http://admin:3101 -t hudhud-storefront .
+#   docker build -f infra/docker/Dockerfile --build-arg SERVICE=admin -t hudhud-admin .
 # See docs/guides/deployment.md.
+
+# A build arg rather than --target: Render cannot pass --target but turns env vars into build args.
+ARG SERVICE=api
 
 FROM node:24-bookworm-slim AS base
 # Prisma needs OpenSSL at runtime; the slim image does not include it.
@@ -15,11 +18,17 @@ FROM base AS build
 WORKDIR /repo
 # The storefront bakes this into its /admin proxy rewrite at build time.
 ARG ADMIN_URL=http://admin:3101
+ARG SERVICE
 ENV ADMIN_URL=$ADMIN_URL NEXT_OUTPUT=standalone
 COPY . .
 RUN pnpm install --frozen-lockfile
 # pnpm rather than turbo: turbo's strict env mode would hide ADMIN_URL and NEXT_OUTPUT from next build.
-RUN pnpm --filter "@hudhud/api..." --filter "@hudhud/storefront-web..." --filter "@hudhud/admin-web..." build
+RUN case "$SERVICE" in \
+      api) app=api ;; \
+      storefront) app=storefront-web ;; \
+      admin) app=admin-web ;; \
+    esac \
+  && pnpm --filter "@hudhud/$app..." build
 
 # Keeps dev dependencies: prisma and tsx run migrations and seeds from this image.
 FROM base AS api
@@ -52,3 +61,5 @@ COPY --from=build --chown=node:node /repo/apps/admin-web/public ./apps/admin-web
 USER node
 EXPOSE 3101
 CMD ["node", "apps/admin-web/server.js"]
+
+FROM ${SERVICE} AS final
