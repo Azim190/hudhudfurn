@@ -67,15 +67,15 @@ services:
       - key: API_PUBLIC_URL
         value: https://hudhudfurn-api.onrender.com
       - key: TRUST_PROXY
-        value: true
+        value: "true"
       - key: SWAGGER_ENABLED
-        value: false
+        value: "false"
       - key: STAFF_MFA_REQUIRED
-        value: true
+        value: "true"
       - key: SMS_PROVIDER
         value: console
       - key: PAYMENTS_SIMULATOR
-        value: true
+        value: "true"
       # Search is not deployed: listings fall back to Postgres.
       - key: MEILI_API_KEY
         value: not-deployed
