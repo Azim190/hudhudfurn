@@ -3,7 +3,10 @@ import type { Job } from 'bullmq';
 import { QUEUES } from '../../core/queue/queue.module';
 import { MediaService } from './media.service';
 
-@Processor(QUEUES.media, { concurrency: 2 })
+// Images processed in parallel. 1 on a single-vCPU server keeps the site responsive during bulk uploads.
+const MEDIA_CONCURRENCY = Math.min(8, Math.max(1, Number.parseInt(process.env.MEDIA_CONCURRENCY ?? '', 10) || 2));
+
+@Processor(QUEUES.media, { concurrency: MEDIA_CONCURRENCY })
 export class MediaProcessor extends WorkerHost {
   constructor(private readonly media: MediaService) {
     super();

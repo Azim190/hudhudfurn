@@ -26,3 +26,8 @@ e2e/playwright-report/
 # Production deployment: secrets and certificates stay on the server
 deploy/.env
 deploy/certs/
+
+# Cloudflare Origin Certificate kept locally before copying to the server
+origin.pem
+origin-key.pem
+*.pem

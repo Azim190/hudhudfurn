@@ -70,7 +70,13 @@ KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 EOF
   sshd -t
-  systemctl reload ssh 2> /dev/null || systemctl reload sshd
+  # Ubuntu 24.04 starts sshd through ssh.socket; a plain reload can leave port 22 closed.
+  systemctl daemon-reload
+  if systemctl list-unit-files ssh.socket > /dev/null 2>&1 && systemctl is-enabled --quiet ssh.socket 2> /dev/null; then
+    systemctl restart ssh.socket
+  fi
+  systemctl restart ssh 2> /dev/null || systemctl restart sshd
+  ss -ltn | grep -q ':22 ' || { echo "ERROR: sshd is not listening on port 22. Keep this session open and run: systemctl restart ssh.socket ssh" >&2; exit 1; }
   echo "Password sign-in is now off. Sign in with your SSH key as ${DEPLOY_USER} or root."
 else
   echo "WARNING: no SSH key found, so password sign-in is still on."

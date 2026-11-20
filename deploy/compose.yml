@@ -6,6 +6,10 @@
 #   api ─ postgres, redis, meilisearch      media and backups ─ Cloudflare R2
 #
 # Only caddy publishes ports. Everything else is reachable on the internal network only.
+#
+# Memory: the defaults below fit a 4 GB server (Hostinger KVM 1, 1 vCPU) with the 4 GB swap that
+# scripts/server-setup.sh adds. On a bigger server, raise them in .env (see "Server size" in
+# .env.example) and run: docker compose up -d
 
 name: hudhud
 
@@ -36,7 +40,8 @@ services:
         condition: service_healthy
     deploy:
       resources:
-        limits: { memory: 256m }
+        limits:
+          memory: 128m
     logging: *logging
 
   postgres:
@@ -49,12 +54,16 @@ services:
     command:
       - postgres
       - -c
-      - shared_buffers=384MB
+      - shared_buffers=${PG_SHARED_BUFFERS:-128MB}
       - -c
-      - effective_cache_size=1GB
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-512MB}
       - -c
-      - max_connections=100
-    shm_size: 256mb
+      - work_mem=${PG_WORK_MEM:-4MB}
+      - -c
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-64MB}
+      - -c
+      - max_connections=${PG_MAX_CONNECTIONS:-50}
+    shm_size: 128mb
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -64,7 +73,8 @@ services:
       retries: 10
     deploy:
       resources:
-        limits: { memory: 1536m }
+        limits:
+          memory: ${POSTGRES_MEMORY:-768m}
     logging: *logging
 
   redis:
@@ -74,7 +84,7 @@ services:
     command:
       - sh
       - -c
-      - exec redis-server --appendonly yes --maxmemory 384mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"
+      - exec redis-server --appendonly yes --maxmemory ${REDIS_MAXMEMORY:-128mb} --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
     volumes:
@@ -86,7 +96,8 @@ services:
       retries: 10
     deploy:
       resources:
-        limits: { memory: 512m }
+        limits:
+          memory: ${REDIS_MEMORY:-192m}
     logging: *logging
 
   meilisearch:
@@ -96,11 +107,15 @@ services:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY in .env}
       MEILI_ENV: production
       MEILI_NO_ANALYTICS: "true"
+      # Keep indexing inside the container limit and off the only CPU core the site needs.
+      MEILI_MAX_INDEXING_MEMORY: ${MEILI_MAX_INDEXING_MEMORY:-256 MiB}
+      MEILI_MAX_INDEXING_THREADS: ${MEILI_MAX_INDEXING_THREADS:-1}
     volumes:
       - meilidata:/meili_data
     deploy:
       resources:
-        limits: { memory: 1g }
+        limits:
+          memory: ${MEILI_MEMORY:-512m}
     logging: *logging
 
   api:
@@ -109,6 +124,8 @@ services:
     env_file: .env
     environment:
       NODE_ENV: ${API_NODE_ENV:-production}
+      # V8 heap below the container limit, leaving room for sharp/libvips and Prisma's engine.
+      NODE_OPTIONS: --max-old-space-size=${API_HEAP_MB:-512}
       PORT: "4100"
       DATABASE_URL: postgresql://${POSTGRES_USER:-hudhud}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hudhud}?schema=public
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
@@ -137,7 +154,8 @@ services:
       retries: 5
     deploy:
       resources:
-        limits: { memory: 1536m }
+        limits:
+          memory: ${API_MEMORY:-896m}
     logging: *logging
 
   storefront:
@@ -146,6 +164,7 @@ services:
     environment:
       PORT: "3100"
       HOSTNAME: 0.0.0.0
+      NODE_OPTIONS: --max-old-space-size=${STOREFRONT_HEAP_MB:-384}
       API_INTERNAL_URL: http://api:4100/api/v1
       STOREFRONT_URL: https://${DOMAIN}
       # Must match the ADMIN_URL build arg baked into the image (see .github/workflows/deploy.yml).
@@ -164,7 +183,8 @@ services:
       retries: 5
     deploy:
       resources:
-        limits: { memory: 1g }
+        limits:
+          memory: ${STOREFRONT_MEMORY:-512m}
     logging: *logging
 
   admin:
@@ -173,6 +193,7 @@ services:
     environment:
       PORT: "3101"
       HOSTNAME: 0.0.0.0
+      NODE_OPTIONS: --max-old-space-size=${ADMIN_HEAP_MB:-256}
       API_INTERNAL_URL: http://api:4100/api/v1
       STOREFRONT_URL: https://${DOMAIN}
     depends_on:
@@ -186,7 +207,8 @@ services:
       retries: 5
     deploy:
       resources:
-        limits: { memory: 768m }
+        limits:
+          memory: ${ADMIN_MEMORY:-384m}
     logging: *logging
 
   backup:
@@ -215,7 +237,8 @@ services:
         condition: service_healthy
     deploy:
       resources:
-        limits: { memory: 256m }
+        limits:
+          memory: 128m
     logging: *logging
 
 volumes:
