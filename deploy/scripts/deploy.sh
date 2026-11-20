@@ -12,7 +12,8 @@ tag="${1:-latest}"
 die() { echo "deploy: $*" >&2; exit 1; }
 [[ -f .env ]] || die ".env is missing. Run: bash scripts/init-env.sh"
 [[ -f certs/origin.pem && -f certs/origin-key.pem ]] || die "certs/origin.pem and certs/origin-key.pem are missing (Cloudflare Origin Certificate)"
-if grep -q '__GENERATE_' .env; then die ".env still has __GENERATE_ placeholders. Run: bash scripts/init-env.sh"; fi
+# Only real values count: the comments in .env mention the placeholder names too.
+if grep -qE '^[A-Z0-9_]+=__GENERATE_' .env; then die ".env still has __GENERATE_ placeholders. Run: bash scripts/init-env.sh"; fi
 
 # Record the tag in .env so later "docker compose" commands use the same images.
 if grep -q '^IMAGE_TAG=' .env; then
