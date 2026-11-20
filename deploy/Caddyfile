@@ -1,0 +1,63 @@
+# Reverse proxy for HUDHUD behind Cloudflare (orange-cloud DNS, SSL mode "Full (strict)").
+# TLS uses a Cloudflare Origin Certificate in deploy/certs/ (see deploy/README.md).
+#
+# Cloudflare IP ranges: https://www.cloudflare.com/ips/ (they rarely change). If Cloudflare adds a
+# range, update BOTH lists below, then run: docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile
+
+{
+	servers {
+		# Only trust client-IP headers when the request really comes from Cloudflare.
+		trusted_proxies static 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+		client_ip_headers CF-Connecting-IP
+	}
+}
+
+# Refuse anything that bypasses Cloudflare (someone hitting the server IP directly).
+# Docker publishes ports past the host firewall, so this check lives here.
+(cloudflare_only) {
+	@direct not remote_ip 173.245.48.0/20 103.21.244.0/22 103.22.200.0/22 103.31.4.0/22 141.101.64.0/18 108.162.192.0/18 190.93.240.0/20 188.114.96.0/20 197.234.240.0/22 198.41.128.0/17 162.158.0.0/15 104.16.0.0/13 104.24.0.0/14 172.64.0.0/13 131.0.72.0/22 2400:cb00::/32 2606:4700::/32 2803:f800::/32 2405:b500::/32 2405:8100::/32 2a06:98c0::/29 2c0f:f248::/32
+	abort @direct
+}
+
+(common) {
+	import cloudflare_only
+	tls /certs/origin.pem /certs/origin-key.pem
+	encode zstd gzip
+	log {
+		output stdout
+		format json
+	}
+}
+
+# Exactly one hop: the real client IP. The storefront reads X-Real-IP, the API reads the last
+# X-Forwarded-For entry (trust proxy = 1), so rate limits and audit logs see the real customer.
+(upstream_headers) {
+	header_up X-Real-IP {client_ip}
+	header_up X-Forwarded-For {client_ip}
+}
+
+www.{$DOMAIN} {
+	import common
+	redir https://{$DOMAIN}{uri} permanent
+}
+
+# Storefront, plus /admin (the storefront proxies it to the private admin container).
+{$DOMAIN} {
+	import common
+	reverse_proxy storefront:3100 {
+		import upstream_headers
+	}
+}
+
+# API: payment gateway callbacks and webhooks, the payment simulator page, and later the mobile apps.
+api.{$DOMAIN} {
+	import common
+
+	# Defence in depth: never expose API docs or the development SMS outbox, whatever NODE_ENV is.
+	@hidden path /docs /docs/* /docs-json /api/v1/dev /api/v1/dev/*
+	respond @hidden 404
+
+	reverse_proxy api:4100 {
+		import upstream_headers
+	}
+}

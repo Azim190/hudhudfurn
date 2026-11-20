@@ -22,3 +22,7 @@ e2e/playwright-report/
 
 # Editor settings (personal)
 .vscode/
+
+# Production deployment: secrets and certificates stay on the server
+deploy/.env
+deploy/certs/

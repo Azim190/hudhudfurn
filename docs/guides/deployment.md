@@ -22,7 +22,7 @@ docker build -f infra/docker/Dockerfile --build-arg SERVICE=admin -t hudhud-admi
 ```
 
 - `ADMIN_URL` is baked into the storefront image. Rebuild the storefront if the admin's internal address changes, and set the same value at runtime.
-- The build downloads IBM Plex from Google Fonts. An occasional `next/font` error (`Cannot read properties of null`) comes from that download. Run the build again.
+- Fonts (IBM Plex) are self-hosted in `apps/*/src/fonts`, so the build needs no Google Fonts access.
 - No API is needed during the build. Pages built without one fall back to their empty state until they refresh: the home page within 5 minutes and the sitemap within an hour.
 
 ## What production requires

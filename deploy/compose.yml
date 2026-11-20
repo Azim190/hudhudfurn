@@ -1,0 +1,227 @@
+# Production stack for a single VPS (e.g. Hostinger KVM 2 or larger), behind Cloudflare.
+# See deploy/README.md. Values come from deploy/.env, which lives on the server only.
+#
+#   Internet ─ Cloudflare ─ caddy :443 ─┬─ storefront :3100 ── /admin/* ── admin :3101
+#                                       └─ api :4100 (api.<domain>: payment callbacks, webhooks)
+#   api ─ postgres, redis, meilisearch      media and backups ─ Cloudflare R2
+#
+# Only caddy publishes ports. Everything else is reachable on the internal network only.
+
+name: hudhud
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      storefront:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: { memory: 256m }
+    logging: *logging
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hudhud}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-hudhud}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=384MB
+      - -c
+      - effective_cache_size=1GB
+      - -c
+      - max_connections=100
+    shm_size: 256mb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { memory: 1536m }
+    logging: *logging
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # BullMQ needs noeviction: an evicted job key would silently lose work.
+    command:
+      - sh
+      - -c
+      - exec redis-server --appendonly yes --maxmemory 384mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: { memory: 512m }
+    logging: *logging
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.15
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?set MEILI_MASTER_KEY in .env}
+      MEILI_ENV: production
+      MEILI_NO_ANALYTICS: "true"
+    volumes:
+      - meilidata:/meili_data
+    deploy:
+      resources:
+        limits: { memory: 1g }
+    logging: *logging
+
+  api:
+    image: ghcr.io/${GHCR_OWNER:?set GHCR_OWNER in .env}/hudhud-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: ${API_NODE_ENV:-production}
+      PORT: "4100"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hudhud}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-hudhud}?schema=public
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      MEILI_HOST: http://meilisearch:7700
+      MEILI_API_KEY: ${MEILI_MASTER_KEY}
+      # Caddy overwrites X-Forwarded-For with the real client IP (from CF-Connecting-IP), and the
+      # web apps forward it the same way, so the API always sees exactly one trusted hop.
+      TRUST_PROXY: "true"
+      SWAGGER_ENABLED: "false"
+      CORS_ORIGINS: https://${DOMAIN}
+      STOREFRONT_URL: https://${DOMAIN}
+      API_PUBLIC_URL: https://api.${DOMAIN}
+      STOREFRONT_REVALIDATE_URL: http://storefront:3100/bff/revalidate
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4100/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
+    deploy:
+      resources:
+        limits: { memory: 1536m }
+    logging: *logging
+
+  storefront:
+    image: ghcr.io/${GHCR_OWNER}/hudhud-storefront:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      PORT: "3100"
+      HOSTNAME: 0.0.0.0
+      API_INTERNAL_URL: http://api:4100/api/v1
+      STOREFRONT_URL: https://${DOMAIN}
+      # Must match the ADMIN_URL build arg baked into the image (see .github/workflows/deploy.yml).
+      ADMIN_URL: http://admin:3101
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:?set REVALIDATE_SECRET in .env}
+    depends_on:
+      api:
+        condition: service_healthy
+      admin:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3100/ar').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      start_period: 40s
+      retries: 5
+    deploy:
+      resources:
+        limits: { memory: 1g }
+    logging: *logging
+
+  admin:
+    image: ghcr.io/${GHCR_OWNER}/hudhud-admin:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      PORT: "3101"
+      HOSTNAME: 0.0.0.0
+      API_INTERNAL_URL: http://api:4100/api/v1
+      STOREFRONT_URL: https://${DOMAIN}
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3101/admin/ar/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 10s
+      start_period: 40s
+      retries: 5
+    deploy:
+      resources:
+        limits: { memory: 768m }
+    logging: *logging
+
+  backup:
+    build: ./backup
+    image: hudhud-backup:local
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-hudhud}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-hudhud}
+      AWS_ACCESS_KEY_ID: ${BACKUP_ACCESS_KEY:-}
+      AWS_SECRET_ACCESS_KEY: ${BACKUP_SECRET_KEY:-}
+      AWS_DEFAULT_REGION: auto
+      # Newer AWS CLI checksums are not all supported by R2.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_BUCKET: ${BACKUP_BUCKET:-hudhud-backups}
+      BACKUP_CRON: ${BACKUP_CRON:-30 0 * * *}
+      KEEP_LOCAL_DAYS: ${KEEP_LOCAL_DAYS:-7}
+    volumes:
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits: { memory: 256m }
+    logging: *logging
+
+volumes:
+  pgdata:
+  redisdata:
+  meilidata:
+  backups:
+  caddy_data:
+  caddy_config:

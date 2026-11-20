@@ -2,13 +2,11 @@ import { directionOf, isLocale, LOCALES } from '@hudhud/i18n';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { arabic, latin } from '@/fonts';
 import '../globals.css';
 
-const arabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic'], weight: ['400', '500', '600', '700'], variable: '--font-arabic' });
-const latin = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-latin' });
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
