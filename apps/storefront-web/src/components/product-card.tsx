@@ -3,6 +3,7 @@ import { Link } from '@/i18n/navigation';
 import { pick, type ProductCard as Card } from '@/lib/catalog-types';
 import { Price } from './price';
 import { ResponsiveImage } from './responsive-image';
+import { PriceGate } from './store-display';
 import { WishlistButton } from './wishlist-button';
 
 const MAX_SWATCHES = 5;
@@ -27,7 +28,11 @@ export function ProductCard({ product, priority = false }: { product: Card; prio
           />
         ) : null}
         <div className="absolute start-2 top-2 flex flex-col items-start gap-1">
-          {product.discountPercent > 0 && <span className="rounded-full bg-danger-600 px-2 py-0.5 text-xs font-semibold text-white">{t('off', { percent: product.discountPercent })}</span>}
+          {product.discountPercent > 0 && (
+            <PriceGate>
+              <span className="rounded-full bg-danger-600 px-2 py-0.5 text-xs font-semibold text-white">{t('off', { percent: product.discountPercent })}</span>
+            </PriceGate>
+          )}
           {product.isMadeToMeasure && <span className="rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-brand-700">{t('madeToMeasure')}</span>}
           {!product.inStock && <span className="rounded-full bg-ink-900/80 px-2 py-0.5 text-xs font-medium text-white">{t('outOfStock')}</span>}
         </div>
@@ -42,11 +47,13 @@ export function ProductCard({ product, priority = false }: { product: Card; prio
             {name}
           </Link>
         </h3>
-        <div className="flex items-baseline gap-1 text-sm">
-          {product.priceFrom && <span className="text-ink-500">{t('from')}</span>}
-          <Price amount={product.price} compareAt={product.compareAtPrice} size="sm" />
-          {unit && <span className="text-xs text-ink-500">{unit}</span>}
-        </div>
+        <PriceGate>
+          <div className="flex items-baseline gap-1 text-sm">
+            {product.priceFrom && <span className="text-ink-500">{t('from')}</span>}
+            <Price amount={product.price} compareAt={product.compareAtPrice} size="sm" />
+            {unit && <span className="text-xs text-ink-500">{unit}</span>}
+          </div>
+        </PriceGate>
         {product.swatches.length > 1 && (
           <ul className="mt-1 flex items-center gap-1" aria-label={product.swatches.map((s) => pick(locale, s.labelAr, s.labelEn)).join('، ')}>
             {product.swatches.slice(0, MAX_SWATCHES).map((s) => (

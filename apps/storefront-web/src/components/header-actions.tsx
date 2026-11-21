@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Link } from '@/i18n/navigation';
 import { CART_EVENT, useCompare, useWishlist } from '@/lib/shop-store';
+import { useStoreDisplay } from './store-display';
 
 function Badge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -21,8 +22,10 @@ export function HeaderActions() {
   const wishlist = useWishlist().length;
   const compare = useCompare().length;
   const [cart, setCart] = useState(0);
+  const { showPrices } = useStoreDisplay();
 
   useEffect(() => {
+    if (!showPrices) return;
     const ctrl = new AbortController();
     fetch('/bff/cart/count', { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : { count: 0 }))
@@ -34,7 +37,7 @@ export function HeaderActions() {
       ctrl.abort();
       window.removeEventListener(CART_EVENT, onCart);
     };
-  }, []);
+  }, [showPrices]);
 
   return (
     <div className="flex items-center">
@@ -52,6 +55,7 @@ export function HeaderActions() {
         </svg>
         <Badge count={wishlist} />
       </Link>
+      {showPrices && (
       <Link href="/cart" className={iconLink} aria-label={`${t('nav.cart')}${cart ? ` (${cart})` : ''}`}>
         <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-none stroke-current" strokeWidth="1.8">
           <path d="M5 7h14l-1.2 11.1a2 2 0 0 1-2 1.9H8.2a2 2 0 0 1-2-1.9L5 7Z" strokeLinejoin="round" />
@@ -59,6 +63,7 @@ export function HeaderActions() {
         </svg>
         <Badge count={cart} />
       </Link>
+      )}
     </div>
   );
 }

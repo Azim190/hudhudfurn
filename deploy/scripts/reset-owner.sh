@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Changes the store owner's sign-in email and sets a new random password, then signs out every
-# session of that account. Run on the server, from the deploy directory:
+# session of that account. Creates the owner account if there is none yet. Run on the server, from the deploy directory:
 #   bash scripts/reset-owner.sh owner@example.com              # keep the current 2FA app
 #   bash scripts/reset-owner.sh owner@example.com --reset-2fa  # also re-enrol 2FA at next sign-in
 # The new password is printed once. Store it in your password manager.
@@ -29,14 +29,27 @@ const argon2 = require('argon2');
       where: { kind: 'STAFF', roles: { some: { role: { key: 'owner' } } } },
       select: { id: true, email: true },
     });
-    if (owners.length !== 1) {
-      throw new Error(`expected exactly 1 owner account, found ${owners.length}: ${owners.map((o) => o.email).join(', ')}`);
+    if (owners.length > 1) {
+      throw new Error(`found ${owners.length} owner accounts (${owners.map((o) => o.email).join(', ')}); change them from the admin panel`);
     }
-    const owner = owners[0];
-    const clash = await prisma.user.findUnique({ where: { email }, select: { id: true } });
-    if (clash && clash.id !== owner.id) throw new Error(`${email} already belongs to another account`);
     // Same parameters as StaffAuthService.hashPassword.
     const passwordHash = await argon2.hash(process.env.NEW_PASSWORD, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+    const clash = await prisma.user.findUnique({ where: { email }, select: { id: true, kind: true } });
+
+    if (owners.length === 0) {
+      // No owner yet (prisma db seed ran without SEED_OWNER_*): create it, like seedOwner does.
+      if (clash) throw new Error(`${email} already belongs to another account`);
+      const role = await prisma.role.findUnique({ where: { key: 'owner' }, select: { id: true } });
+      if (!role) throw new Error("role 'owner' is missing: run  docker compose run --rm api prisma db seed  first");
+      await prisma.user.create({
+        data: { kind: 'STAFF', email, fullName: 'Store Owner', passwordHash, roles: { create: [{ roleId: role.id }] } },
+      });
+      console.log(`reset-owner: created owner account ${email} (2FA enrolment at first sign-in)`);
+      return;
+    }
+
+    const owner = owners[0];
+    if (clash && clash.id !== owner.id) throw new Error(`${email} already belongs to another account`);
     await prisma.$transaction([
       prisma.user.update({ where: { id: owner.id }, data: { email, passwordHash, status: 'ACTIVE' } }),
       prisma.session.updateMany({ where: { userId: owner.id, revokedAt: null }, data: { revokedAt: new Date() } }),

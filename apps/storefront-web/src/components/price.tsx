@@ -4,6 +4,7 @@ import { formatPrice, type Locale } from '@hudhud/i18n';
 import { cn } from '@hudhud/ui';
 import { useLocale } from 'next-intl';
 import { useCookie } from '@/lib/client-cookies';
+import { useStoreDisplay } from './store-display';
 
 /** Formats SAR amounts with the visitor's digit preference (cookie; Western digits on the server). */
 export function usePriceFormatter() {
@@ -24,6 +25,8 @@ export function Price({
   size?: 'sm' | 'md' | 'lg';
 }) {
   const format = usePriceFormatter();
+  const { showPrices } = useStoreDisplay();
+  if (!showPrices) return null;
   const sizes = { sm: 'text-sm', md: 'text-base', lg: 'text-2xl' };
   return (
     <span className={cn('inline-flex flex-wrap items-baseline gap-x-2', className)}>

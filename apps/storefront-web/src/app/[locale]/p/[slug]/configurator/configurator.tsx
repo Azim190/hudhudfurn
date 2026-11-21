@@ -4,6 +4,7 @@ import { Alert, Button, Card, Spinner, cn } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { usePriceFormatter } from '@/components/price';
+import { useStoreDisplay, whatsappHref } from '@/components/store-display';
 import { Link } from '@/i18n/navigation';
 import { pick } from '@/lib/catalog-types';
 import { announceCartCount } from '@/lib/shop-store';
@@ -34,6 +35,7 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
   const ts = useTranslations('shop');
   const locale = useLocale();
   const format = usePriceFormatter();
+  const { showPrices } = useStoreDisplay();
   const [data, setData] = useState<ConfiguratorData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [unit, setUnit] = useState<Unit>('cm');
@@ -135,7 +137,7 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
   };
   const choose = (group: string, code: string) => setChoices((c) => ({ ...c, [group]: code }));
   const toggleExtra = (code: string) => setExtras((e) => (e.includes(code) ? e.filter((x) => x !== code) : [...e, code]));
-  const priceHint = (o: TemplateOption) => (o.price === 0 ? t('included') : t(`basis_${o.priceBasis}`, { price: format(o.price) }));
+  const priceHint = (o: TemplateOption) => (!showPrices ? undefined : o.price === 0 ? t('included') : t(`basis_${o.priceBasis}`, { price: format(o.price) }));
 
   async function uploadPhotos(files: FileList | null) {
     if (!files?.length) return;
@@ -284,7 +286,8 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
                       <select value={p.code} onChange={(e) => set({ code: e.target.value })} className="h-11 rounded-xl border border-sand-300 bg-white px-2">
                         {(groups.get('PIECE') ?? []).map((o) => (
                           <option key={o.code} value={o.code}>
-                            {pick(locale, o.nameAr, o.nameEn)} — {format(o.price)}
+                            {pick(locale, o.nameAr, o.nameEn)}
+                            {showPrices && ` — ${format(o.price)}`}
                           </option>
                         ))}
                       </select>
@@ -357,7 +360,7 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
                     <input type="checkbox" checked={extras.includes(o.code)} onChange={() => toggleExtra(o.code)} className="size-4 accent-brand-600" />
                     {pick(locale, o.nameAr, o.nameEn)}
                   </span>
-                  <span className="text-ink-500">{priceHint(o)}</span>
+                  {showPrices && <span className="text-ink-500">{priceHint(o)}</span>}
                 </label>
               ))}
             </fieldset>
@@ -372,6 +375,8 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
 
       <Card className="flex flex-col gap-3 p-4">
         {(kind === 'CURTAIN' || kind === 'BLIND') && <CurtainPreview kind={kind} color={swatchHex ?? '#c9b99a'} widthMm={inputs.widthMm} heightMm={inputs.heightMm} panels={kind === 'CURTAIN' ? panels : 1} heading={heading} label={t('previewLabel')} />}
+        {showPrices && (
+        <>
         <div className="flex items-center justify-between">
           <h3 className="font-semibold">{t('breakdown')}</h3>
           {quoting && <Spinner className="size-4 text-brand-600" aria-hidden="true" />}
@@ -397,6 +402,21 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
         ) : (
           <p className="text-sm text-ink-500">{t('completeDetails')}</p>
         )}
+        </>
+        )}
+        {!showPrices ? (
+          // Catalogue mode: send the product to WhatsApp instead of pricing and adding it to the cart.
+          (() => {
+            const href = whatsappHref(whatsapp, ts('orderWhatsappMessage', { name: productName, variant: '', url: productUrl }));
+            return href ? (
+              <a href={href} target="_blank" rel="noopener noreferrer" data-testid="order-whatsapp" className="inline-flex h-12 items-center justify-center rounded-xl bg-success-600 px-6 font-medium text-white hover:bg-success-600/90">
+                {ts('orderOnWhatsApp')}
+              </a>
+            ) : (
+              <p className="rounded-xl bg-sand-100 px-4 py-3 text-sm text-ink-700">{ts('orderContactUs')}</p>
+            );
+          })()
+        ) : (
         <div className="flex items-stretch gap-3">
           <div className="flex items-center rounded-xl border border-sand-300 bg-white" role="group" aria-label={ts('quantity')}>
             <button type="button" aria-label={ts('decrease')} disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="size-12 text-lg disabled:opacity-40">
@@ -413,6 +433,7 @@ export function Configurator({ productId, productName, variantId, swatchHex, wha
             {ts('addToCart')}
           </Button>
         </div>
+        )}
         {message && (
           <Alert tone={message.tone}>
             {message.text}{' '}

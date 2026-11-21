@@ -6,6 +6,7 @@ import { STOREFRONT_COOKIES } from '@hudhud/web-core/cookie-names';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import { Price } from '@/components/price';
+import { useStoreDisplay } from '@/components/store-display';
 import { WishlistButton } from '@/components/wishlist-button';
 import { Link } from '@/i18n/navigation';
 import { pick, type ProductDetail } from '@/lib/catalog-types';
@@ -31,6 +32,7 @@ export function ProductExperience({
   cities: Array<{ code: string; nameAr: string; nameEn: string }>;
 }) {
   const t = useTranslations('shop');
+  const { showPrices } = useStoreDisplay();
   const locale = useLocale();
   const signedIn = useCookie(STOREFRONT_COOKIES.hint) === '1';
   const compare = useCompare();
@@ -122,7 +124,11 @@ export function ProductExperience({
     setMessage(res.ok ? { tone: 'success', text: t('notifySaved') } : { tone: 'danger', text: json.message ?? res.statusText });
   }
 
-  const waText = t('whatsappMessage', { name, sku: variant?.sku ?? '', url: productUrl });
+  // Catalogue mode orders on WhatsApp, naming the chosen colour and size so the shop can reply with a price.
+  const variantLabel = variant ? product.axes.map((a) => a.values.find((v) => v.code === selection[a.key])).filter(Boolean).map((v) => pick(locale, v!.labelAr, v!.labelEn)).join(' / ') : '';
+  const waText = showPrices
+    ? t('whatsappMessage', { name, sku: variant?.sku ?? '', url: productUrl })
+    : t('orderWhatsappMessage', { name, variant: variantLabel ? `(${variantLabel})` : '', url: productUrl });
   const waNumber = whatsapp.replace(/\D/g, '');
   const waHref = `https://wa.me/${waNumber}?text=${encodeURIComponent(waText)}`;
   const inCompare = compare.includes(product.id);
@@ -134,6 +140,8 @@ export function ProductExperience({
       <div className="flex flex-col gap-5">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">{name}</h1>
+          {showPrices && (
+          <>
           <div className="mt-3 flex flex-wrap items-baseline gap-3">
             {((measured && !sizeValid) || product.pricingMode === 'CALCULATED') && <span className="text-ink-500">{t('from')}</span>}
             <Price amount={unitPrice} compareAt={measured ? null : variant?.compareAtPrice} size="lg" />
@@ -145,6 +153,8 @@ export function ProductExperience({
             )}
           </div>
           <p className="mt-1 text-xs text-ink-500">{t('vatIncluded')}</p>
+          </>
+          )}
         </div>
 
         {product.axes.map((axis) => (
@@ -266,7 +276,7 @@ export function ProductExperience({
               variant?.lowStock && <p className="text-sm font-medium text-accent-500">{t('lowStock')}</p>
             )}
 
-            {product.vertical === 'ABAYAS' && variant?.available && (
+            {showPrices && product.vertical === 'ABAYAS' && variant?.available && (
               <div className="flex flex-col gap-2">
                 <Checkbox label={t('giftWrap')} checked={giftWrap} onChange={(e) => setGiftWrap(e.target.checked)} />
                 {giftWrap && (
@@ -275,6 +285,19 @@ export function ProductExperience({
               </div>
             )}
 
+            {!showPrices ? (
+              // Catalogue mode: no prices or cart; the customer orders this product on WhatsApp.
+              waNumber ? (
+                <a href={waHref} target="_blank" rel="noopener noreferrer" data-testid="order-whatsapp" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-success-600 px-6 font-medium text-white hover:bg-success-600/90">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="size-5 fill-current">
+                    <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3a.5.5 0 0 0 0-.5l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.2c0-.1-.2-.2-.4-.3Z" />
+                  </svg>
+                  {t('orderOnWhatsApp')}
+                </a>
+              ) : (
+                <p className="rounded-xl bg-sand-100 px-4 py-3 text-sm text-ink-700">{t('orderContactUs')}</p>
+              )
+            ) : (
             <div className="flex items-stretch gap-3">
               <div className="flex items-center rounded-xl border border-sand-300 bg-white" role="group" aria-label={t('quantity')}>
                 <button type="button" aria-label={t('decrease')} disabled={quantity <= 1} onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="size-12 text-lg disabled:opacity-40">
@@ -291,6 +314,7 @@ export function ProductExperience({
                 {!variant ? t('chooseOptionsFirst') : t('addToCart')}
               </Button>
             </div>
+            )}
           </>
         )}
 
@@ -318,12 +342,12 @@ export function ProductExperience({
           >
             {inCompare ? t('removeFromCompare') : t('addToCompare')}
           </button>
-          {product.sampleAvailable && variant && !configured && (
+          {showPrices && product.sampleAvailable && variant && !configured && (
             <button type="button" disabled={busy} onClick={() => addToCart(true)} className="h-12 rounded-xl border border-sand-300 bg-white px-4 text-sm font-medium hover:bg-sand-100">
               {t('orderSample')} {product.samplePrice === 0 ? `(${t('sampleFree')})` : ''}
             </button>
           )}
-          {waNumber && !configured && (
+          {showPrices && waNumber && !configured && (
             <a href={waHref} target="_blank" rel="noopener noreferrer" className="inline-flex h-12 items-center rounded-xl border border-success-600/40 bg-success-50 px-4 text-sm font-medium text-success-600">
               {t('askOnWhatsApp')}
             </a>

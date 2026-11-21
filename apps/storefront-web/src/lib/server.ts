@@ -29,6 +29,13 @@ export interface StoreInfo {
   social?: Partial<Record<'instagram' | 'x' | 'facebook' | 'tiktok' | 'telegram', string>>;
   vat: { rateBp: number; pricesIncludeVat: boolean };
   modules: Record<string, boolean>;
+  /** Absent from APIs older than the storefront display setting (prices shown). */
+  display?: { showPrices: boolean };
+}
+
+/** Prices are shown unless the admin turned them off; also when the API is unreachable. */
+export function showPricesOf(store: StoreInfo | null): boolean {
+  return store?.display?.showPrices !== false;
 }
 
 /** Store identity changes rarely: cache for five minutes across requests. */

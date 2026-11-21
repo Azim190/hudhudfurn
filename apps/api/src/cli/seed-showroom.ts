@@ -25,11 +25,11 @@ import { BED_SHEETS } from './seed-data/bed-sheets';
 import { SEED_CATEGORIES } from './seed-data/categories';
 import { CURTAINS } from './seed-data/curtains';
 import { CARE } from './seed-data/products';
-import { SOFA_COVERS } from './seed-data/sofa-covers';
+import { SOFA_COVERS, SOFA_CUSHIONS } from './seed-data/sofa-covers';
 
 // Same relative path from src/cli and dist/cli.
 const ASSET_DIR = resolve(__dirname, '../../seed-assets');
-const GROUPS = [BED_SHEETS, CURTAINS, SOFA_COVERS];
+const GROUPS = [BED_SHEETS, CURTAINS, SOFA_COVERS, SOFA_CUSHIONS];
 
 const SOCIAL = {
   instagram: 'https://www.instagram.com/hadimohog20/',
@@ -89,7 +89,8 @@ async function main() {
     for (const sp of group.products) {
       if (await prisma.product.findFirst({ where: { nameEn: sp.en } })) continue;
       const sizes = Object.entries(sp.sizes ?? {});
-      const price = template ? sp.fabricPrice! : Math.min(...sizes.map(([, p]) => p));
+      const price = template ? sp.fabricPrice : sizes.length ? Math.min(...sizes.map(([, p]) => p)) : sp.price;
+      if (price === undefined) throw new Error(`${sp.en}: set sizes, price or fabricPrice`);
       const attributeValues = await prisma.attributeValue.findMany({
         where: { OR: Object.entries(sp.attrs ?? {}).flatMap(([key, codes]) => codes.map((code) => ({ attribute: { key }, code }))) },
       });

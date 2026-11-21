@@ -8,7 +8,7 @@ import { ProductGrid } from '@/components/product-card';
 import { RecentlyViewed } from '@/components/recently-viewed';
 import { getProduct } from '@/lib/catalog-api';
 import { pick, type ProductDetail } from '@/lib/catalog-types';
-import { getStoreInfo } from '@/lib/server';
+import { getStoreInfo, showPricesOf } from '@/lib/server';
 import { siteUrl, slugAlternates } from '@/lib/seo';
 import { ProductExperience } from './product-experience';
 
@@ -44,7 +44,7 @@ interface Reviews {
   ratingCount: number;
 }
 
-function productJsonLd(p: ProductDetail, locale: string, url: string) {
+function productJsonLd(p: ProductDetail, locale: string, url: string, showPrices: boolean) {
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -53,7 +53,8 @@ function productJsonLd(p: ProductDetail, locale: string, url: string) {
     sku: p.variants[0]?.sku,
     image: p.media.map((m) => m.url),
     url,
-    offers: p.variants.map((v) => ({
+    // No offers while prices are hidden: search results must not show them either.
+    offers: !showPrices ? undefined : p.variants.map((v) => ({
       '@type': 'Offer',
       sku: v.sku,
       priceCurrency: 'SAR',
@@ -175,7 +176,7 @@ export default async function ProductPage({ params }: Props) {
       )}
       <RecentlyViewed excludeId={product.id} />
 
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd(product, locale, url)).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd(product, locale, url, showPricesOf(store))).replace(/</g, '\\u003c') }} />
     </div>
   );
 }

@@ -526,6 +526,11 @@
     "removeFromCompare": "Remove from compare",
     "compareLimit": "You can compare up to 4 products",
     "askOnWhatsApp": "Ask on WhatsApp",
+    "orderOnWhatsApp": "Order on WhatsApp",
+    "orderContactUs": "To order or ask for the price, contact us through the links at the bottom of the page.",
+    "orderWhatsappMessage": "Hello, I would like to order: {name} {variant} {url}",
+    "catalogModeCart": "Orders are currently taken on WhatsApp: open the product you like and tap “Order on WhatsApp”, and we will reply with the price and delivery details.",
+    "catalogModeWhatsAppText": "Hello, I would like to order from HUDHUD",
     "whatsappMessage": "Hello, I have a question about: {name} ({sku}) {url}",
     "description": "Description",
     "details": "Details",
@@ -1015,5 +1020,20 @@
     "weekday_4": "Thu",
     "weekday_5": "Fri",
     "weekday_6": "Sat"
+  },
+  "settings": {
+    "title": "Store settings",
+    "showPrices": "Show prices",
+    "showPricesOn": "Prices, the cart and checkout are visible to customers.",
+    "showPricesOff": "Prices are hidden: the store shows products only and customers order on WhatsApp. Cart and checkout are off.",
+    "needsWhatsApp": "Add a WhatsApp number so customers can order while prices are hidden.",
+    "contact": "Contact details",
+    "whatsapp": "WhatsApp number",
+    "whatsappHint": "International format, e.g. +966500000000. Used by the “Order on WhatsApp” button.",
+    "phone": "Phone",
+    "email": "Email",
+    "save": "Save",
+    "discard": "Discard",
+    "saved": "Saved. The store updates within seconds."
   }
 }

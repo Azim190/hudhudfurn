@@ -3,6 +3,7 @@
 import { Button, Spinner } from '@hudhud/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { Price } from '@/components/price';
+import { PriceGate } from '@/components/store-display';
 import { useProductCards } from '@/components/recently-viewed';
 import { ResponsiveImage } from '@/components/responsive-image';
 import { Link } from '@/i18n/navigation';
@@ -64,16 +65,18 @@ export function CompareView() {
             </tr>
           </thead>
           <tbody>
-            <tr className="border-t border-sand-200">
-              <th scope="row" className="p-4 text-start font-medium text-ink-500">
-                {t('price')}
-              </th>
-              {cards.map((c) => (
-                <td key={c.id} className="p-4">
-                  <Price amount={c.price} compareAt={c.compareAtPrice} size="sm" />
-                </td>
-              ))}
-            </tr>
+            <PriceGate>
+              <tr className="border-t border-sand-200">
+                <th scope="row" className="p-4 text-start font-medium text-ink-500">
+                  {t('price')}
+                </th>
+                {cards.map((c) => (
+                  <td key={c.id} className="p-4">
+                    <Price amount={c.price} compareAt={c.compareAtPrice} size="sm" />
+                  </td>
+                ))}
+              </tr>
+            </PriceGate>
             <tr className="border-t border-sand-200">
               <th scope="row" className="p-4 text-start font-medium text-ink-500">
                 {t('inStock')}

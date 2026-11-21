@@ -24,6 +24,11 @@ export const SETTING_DEFAULTS = {
   'store.contact': { phone: '', whatsapp: '', email: '' },
   /** Social media profile URLs shown in the storefront footer; empty ones are hidden. */
   'store.social': { instagram: '', x: '', facebook: '', tiktok: '', telegram: '' },
+  /**
+   * Storefront presentation. With showPrices false the shop works as a catalogue: prices, the cart
+   * and checkout are hidden and products are ordered through WhatsApp (store.contact.whatsapp).
+   */
+  'storefront.display': { showPrices: true },
   'tax.vat': { rateBp: SA_STANDARD_VAT_BP, pricesIncludeVat: true },
   'cart.giftWrap': { priceHalalas: 1500 },
   'cart.limits': { maxLines: 50, maxQuantityPerLine: 20 },
@@ -74,14 +79,15 @@ export class SettingsService {
   }
 
   async publicStoreInfo() {
-    const [name, legal, contact, social, vat, modules] = await Promise.all([
+    const [name, legal, contact, social, vat, modules, display] = await Promise.all([
       this.get('store.name'),
       this.get('store.legal'),
       this.get('store.contact'),
       this.get('store.social'),
       this.get('tax.vat'),
       this.get('modules.enabled'),
+      this.get('storefront.display'),
     ]);
-    return { name, legal, contact, social, vat, modules };
+    return { name, legal, contact, social, vat, modules, display };
   }
 }

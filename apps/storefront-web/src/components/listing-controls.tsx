@@ -7,6 +7,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { usePathname, useRouter } from '@/i18n/navigation';
 import { pick, type FacetDefinition } from '@/lib/catalog-types';
 import { usePriceFormatter } from './price';
+import { PriceGate, useStoreDisplay } from './store-display';
 
 const SORTS = ['relevance', 'newest', 'price_asc', 'price_desc', 'rating', 'discount'] as const;
 const VISIBLE_VALUES = 8;
@@ -30,7 +31,10 @@ function useQueryUpdater() {
 export function SortSelect({ hasQuery }: { hasQuery: boolean }) {
   const t = useTranslations('shop');
   const { params, update } = useQueryUpdater();
+  const { showPrices } = useStoreDisplay();
   const current = params.get('sort') ?? (hasQuery ? 'relevance' : 'newest');
+  // Price and discount sorts would reveal relative prices while they are hidden.
+  const sorts = SORTS.filter((s) => (hasQuery || s !== 'relevance') && (showPrices || !['price_asc', 'price_desc', 'discount'].includes(s)));
   return (
     <label className="flex items-center gap-2 text-sm">
       <span className="text-ink-500">{t('sortBy')}</span>
@@ -39,7 +43,7 @@ export function SortSelect({ hasQuery }: { hasQuery: boolean }) {
         onChange={(e) => update((qs) => qs.set('sort', e.target.value))}
         className="h-10 rounded-xl border border-sand-300 bg-white px-3 text-sm"
       >
-        {SORTS.filter((s) => hasQuery || s !== 'relevance').map((s) => (
+        {sorts.map((s) => (
           <option key={s} value={s}>
             {t(`sort_${s}`)}
           </option>
@@ -183,7 +187,9 @@ export function FilterPanel({
       <div className="border-b border-sand-200 py-4">
         <Checkbox label={t('inStockOnly')} checked={params.get('inStock') === 'true'} onChange={(e) => update((qs) => (e.target.checked ? qs.set('inStock', 'true') : qs.delete('inStock')))} />
       </div>
-      <PriceFilter range={priceRange} />
+      <PriceGate>
+        <PriceFilter range={priceRange} />
+      </PriceGate>
       {facets.map((f) => (
         <FacetGroup key={f.key} facet={f} counts={facetCounts[f.key] ?? {}} />
       ))}

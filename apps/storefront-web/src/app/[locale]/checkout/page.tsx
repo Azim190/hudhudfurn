@@ -4,7 +4,8 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { getCurrentUser } from '@/lib/server';
+import { redirect } from '@/i18n/navigation';
+import { getCurrentUser, getStoreInfo, showPricesOf } from '@/lib/server';
 import { CheckoutView, type CheckoutCity, type PickupLocation, type SavedAddress } from './checkout-view';
 
 /** Personalised (session, cart): never cached. */
@@ -20,6 +21,8 @@ export default async function CheckoutPage({ params }: { params: Promise<{ local
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   setRequestLocale(locale);
+  // Catalogue mode (prices hidden): there is nothing to check out; the cart page explains why.
+  if (!showPricesOf(await getStoreInfo())) redirect({ href: '/cart', locale });
   const t = await getTranslations('checkout');
   const user = await getCurrentUser(locale);
   const access = (await cookies()).get(STOREFRONT_COOKIES.access)?.value;

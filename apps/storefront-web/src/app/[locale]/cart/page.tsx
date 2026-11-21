@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { CartView } from './cart-view';
+import { CatalogModeNotice } from './catalog-mode-notice';
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
@@ -18,7 +19,9 @@ export default async function CartPage({ params }: { params: Promise<{ locale: s
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <h1 className="text-3xl font-bold">{t('cartTitle')}</h1>
-      <CartView />
+      <CatalogModeNotice>
+        <CartView />
+      </CatalogModeNotice>
     </div>
   );
 }

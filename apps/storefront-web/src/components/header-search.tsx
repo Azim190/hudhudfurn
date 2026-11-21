@@ -6,6 +6,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { pick } from '@/lib/catalog-types';
 import { usePriceFormatter } from './price';
+import { useStoreDisplay } from './store-display';
 
 interface Suggestion {
   id: string;
@@ -23,6 +24,7 @@ export function HeaderSearch({ className }: { className?: string }) {
   const locale = useLocale();
   const router = useRouter();
   const format = usePriceFormatter();
+  const { showPrices } = useStoreDisplay();
   const listId = useId();
   const [q, setQ] = useState('');
   const [items, setItems] = useState<Suggestion[]>([]);
@@ -123,7 +125,7 @@ export function HeaderSearch({ className }: { className?: string }) {
               {/* eslint-disable-next-line @next/next/no-img-element -- 320px rendition */}
               {s.image ? <img src={s.image} alt="" width={36} height={45} className="h-11 w-9 rounded object-cover" /> : <span className="h-11 w-9 rounded bg-sand-100" />}
               <span className="flex-1 text-sm">{pick(locale, s.nameAr, s.nameEn)}</span>
-              <span className="text-xs text-ink-500">{format(s.price)}</span>
+              {showPrices && <span className="text-xs text-ink-500">{format(s.price)}</span>}
             </li>
           ))}
           <li role="option" aria-selected={false} onMouseDown={(e) => (e.preventDefault(), submit())} className="cursor-pointer border-t border-sand-200 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-sand-50">

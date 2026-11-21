@@ -6,7 +6,8 @@ import { notFound } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
-import { getStoreInfo } from '@/lib/server';
+import { StoreDisplayProvider } from '@/components/store-display';
+import { getStoreInfo, showPricesOf } from '@/lib/server';
 import { localizedAlternates, siteUrl } from '@/lib/seo';
 import { arabic, latin } from '@/fonts';
 import '../globals.css';
@@ -54,9 +55,11 @@ export default async function LocaleLayout({
           {t('skipToContent')}
         </a>
         <NextIntlClientProvider>
-          <SiteHeader />
-          <main id="main">{children}</main>
-          <SiteFooter locale={locale} store={store} />
+          <StoreDisplayProvider value={{ showPrices: showPricesOf(store), whatsapp: store?.contact.whatsapp.replace(/\D/g, '') ?? '' }}>
+            <SiteHeader />
+            <main id="main">{children}</main>
+            <SiteFooter locale={locale} store={store} />
+          </StoreDisplayProvider>
         </NextIntlClientProvider>
       </body>
     </html>

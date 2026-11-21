@@ -5,11 +5,13 @@ export interface ShowroomProduct {
   en: string;
   descAr: string;
   descEn: string;
-  /** Colour code → photos of that colourway (the first is linked to its variants). */
+  /** Colour code → photos of that colourway (the first is linked to its variants). May be empty when a group photo shows it. */
   colors: Record<string, string[]>;
   attrs?: Record<string, string[]>;
   /** Fixed-price products: price (SAR) per size code of the group's size axis. */
   sizes?: Record<string, number>;
+  /** Fixed-price products in a group without a size axis (cushions): price (SAR). */
+  price?: number;
   /** Made-to-measure products: configurator fabric price (SAR per metre). */
   fabricPrice?: number;
 }
