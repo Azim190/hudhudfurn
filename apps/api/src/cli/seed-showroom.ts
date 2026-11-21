@@ -51,6 +51,47 @@ const HOME_HERO = {
   altAr: 'غرفة نوم بطقم مفرش أبيض بكشكش برتقالي وستائر برتقالية متناسقة',
   altEn: 'Bedroom with a white bedspread, orange ruffles and matching orange curtains',
 };
+// Further hero banners (the shop's campaign artwork), shown after the bedroom photo in this order.
+// Landscape artwork renders full width with the text over a bottom gradient.
+const MORE_HERO_BANNERS = [
+  {
+    image: 'banner-rose-bedding.jpg',
+    titleAr: 'طقم المفرش الوردي المطرّز',
+    titleEn: 'Embroidered Rose Bedding',
+    subtitleAr: 'مفرش ومخدات بنقشة ذهبية وستائر بلون متناسق لغرفة نوم دافئة',
+    subtitleEn: 'Bedding and cushions with gold detailing, and curtains in a matching shade',
+    ctaAr: 'تسوّقي المفارش',
+    ctaEn: 'Shop bedding',
+    link: '/c/bedding',
+    altAr: 'سرير بمفرش عاجي ووشاح وردي مطرز بالذهبي ومخدات فيونكة ووردة وستائر وردية',
+    altEn: 'Bed with an ivory bedspread, a gold-embroidered rose runner, bow and ruffle cushions and rose curtains',
+  },
+  {
+    image: 'banner-burgundy-bedding.jpg',
+    titleAr: 'فخامة العنابي',
+    titleEn: 'The Burgundy Collection',
+    subtitleAr: 'مفرش بتطريز ذهبي مع مخدات وستائر بدرجة عنابية واحدة',
+    subtitleEn: 'Gold-embroidered bedding with cushions and curtains in one rich burgundy',
+    ctaAr: 'اكتشفي التشكيلة',
+    ctaEn: 'Discover the collection',
+    link: '/c/bedding',
+    altAr: 'سرير بمفرش عاجي ووشاح عنابي مطرز بخيوط ذهبية ومخدات عنابية وستائر عنابية وعاجية',
+    altEn: 'Bed with an ivory bedspread, a burgundy runner embroidered in gold, burgundy cushions and burgundy-and-ivory curtains',
+  },
+  {
+    image: 'banner-flower-cushion.jpg',
+    titleAr: 'مخدة الوردة المخملية',
+    titleEn: 'The Velvet Flower Cushion',
+    subtitleAr: 'لمسة لون أنيقة لكنبك وكراسيك الكلاسيكية',
+    subtitleEn: 'An elegant touch of colour for classic sofas and armchairs',
+    ctaAr: 'تسوّقي المخدات',
+    ctaEn: 'Shop cushions',
+    link: '/c/sofa-covers',
+    altAr: 'كرسي كلاسيكي مذهّب عليه مخدة مخملية خضراء داكنة على شكل وردة بزر كريستال',
+    altEn: 'Gilded classic armchair with a dark green velvet flower cushion and a crystal button',
+  },
+];
+
 const log = (msg: string) => console.log(msg);
 
 async function main() {
@@ -185,6 +226,16 @@ async function main() {
       },
     });
     log('✓ home hero banner');
+  }
+  for (const b of MORE_HERO_BANNERS) {
+    if (await prisma.banner.findFirst({ where: { placement: 'HERO', titleAr: b.titleAr } })) continue;
+    const buffer = await readFile(resolve(ASSET_DIR, 'banners', b.image));
+    const image = await media.upload({ buffer, originalname: b.image, size: buffer.length }, undefined, { altAr: b.altAr, altEn: b.altEn });
+    await media.generateRenditions(image.id);
+    const last = await prisma.banner.aggregate({ where: { placement: 'HERO' }, _max: { sortOrder: true } });
+    const { image: _file, altAr: _altAr, altEn: _altEn, ...text } = b;
+    await prisma.banner.create({ data: { placement: 'HERO', sortOrder: (last._max.sortOrder ?? -1) + 1, ...text, imageArId: image.id, imageEnId: image.id } });
+    log(`✓ hero banner: ${b.titleEn}`);
   }
 
   // Footer social links (the shop's own accounts).
