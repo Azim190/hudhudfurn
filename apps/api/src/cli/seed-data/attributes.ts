@@ -27,6 +27,7 @@ export const SEED_ATTRIBUTES: SeedAttribute[] = [
       { code: 'charcoal', ar: 'فحمي', en: 'Charcoal', hex: '#3B4048' },
       { code: 'black', ar: 'أسود', en: 'Black', hex: '#151515' },
       { code: 'navy', ar: 'كحلي', en: 'Navy', hex: '#1F3A5F' },
+      { code: 'blue', ar: 'أزرق', en: 'Blue', hex: '#2F5F8F' },
       { code: 'royal_blue', ar: 'أزرق ملكي', en: 'Royal blue', hex: '#2B2FD0' },
       { code: 'teal', ar: 'فيروزي', en: 'Teal', hex: '#2F6F6A' },
       { code: 'teal_blue', ar: 'أزرق بترولي', en: 'Teal blue', hex: '#1F4A5C' },

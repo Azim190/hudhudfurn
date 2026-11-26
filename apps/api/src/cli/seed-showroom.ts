@@ -24,12 +24,13 @@ import { SEED_ATTRIBUTES } from './seed-data/attributes';
 import { BED_SHEETS } from './seed-data/bed-sheets';
 import { SEED_CATEGORIES } from './seed-data/categories';
 import { CURTAINS } from './seed-data/curtains';
+import { MAJLIS } from './seed-data/majlis';
 import { CARE } from './seed-data/products';
 import { SOFA_COVERS, SOFA_CUSHIONS } from './seed-data/sofa-covers';
 
 // Same relative path from src/cli and dist/cli.
 const ASSET_DIR = resolve(__dirname, '../../seed-assets');
-const GROUPS = [BED_SHEETS, CURTAINS, SOFA_COVERS, SOFA_CUSHIONS];
+const GROUPS = [BED_SHEETS, CURTAINS, SOFA_COVERS, SOFA_CUSHIONS, MAJLIS];
 
 const SOCIAL = {
   instagram: 'https://www.instagram.com/hadimohog20/',
